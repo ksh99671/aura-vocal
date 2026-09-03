@@ -10,6 +10,7 @@ import Checklist from "./screens/lesson/Checklist";
 import LessonResult from "./screens/lesson/LessonResult";
 import Library from "./screens/shared/Library";
 import History from "./screens/shared/History";
+import StudentApp from "./screens/student/StudentApp";
 
 const SCREENS = {
   home: Home, selfHub: SelfHub, audioRecord: AudioRecord,
@@ -23,6 +24,9 @@ export default function App() {
   const [{ screen, params }, setNav] = useState({ screen: "home", params: {} });
   const [theme, setTheme] = useState(() => localStorage.getItem("theme") || "dark");
 
+  // 학생 페이지 라우팅 — URL에 ?student=true 있으면 학생 앱으로
+  const isStudentPage = new URLSearchParams(window.location.search).has("id");
+
   useEffect(() => {
     document.documentElement.setAttribute("data-theme", theme === "light" ? "light" : "");
     localStorage.setItem("theme", theme);
@@ -30,6 +34,8 @@ export default function App() {
 
   const go = (screen, params = {}) => setNav({ screen, params });
   const toggleTheme = () => setTheme(t => t === "dark" ? "light" : "dark");
+
+  if (isStudentPage) return <StudentApp />;
 
   const Screen = SCREENS[screen] ?? Home;
 
