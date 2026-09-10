@@ -20,6 +20,7 @@ async function callClaude(systemPrompt, userPrompt) {
   catch { return { raw }; }
 }
 
+// ── 셀프 진단 ──
 export function useSelfDiagnosis() {
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -40,18 +41,18 @@ export function useSelfDiagnosis() {
   return { diagnose, result, loading, error };
 }
 
+// ── 레슨 진단 (자유 메모 기반) ──
 export function useLessonDiagnosis() {
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  const diagnose = async ({ student, selections }) => {
+  const diagnose = async ({ student, memo }) => {
     setLoading(true); setError(null);
-    const system = `당신은 전문 보컬 트레이너입니다. 트레이너가 학생의 발성을 듣고 체크한 항목을 바탕으로 오늘 레슨 방향과 연습법을 제안해주세요.
+    const system = `당신은 전문 보컬 트레이너입니다. 트레이너가 레슨 중 관찰한 내용을 바탕으로 오늘 레슨 방향과 연습법을 제안해주세요.
 반드시 아래 JSON 형식으로만 응답하세요:
 {"pattern":"주요 발성 패턴 요약(1문장)","cause":"원인 분석(1~2문장)","directions":["레슨 방향1","레슨 방향2","레슨 방향3"],"homework":"다음 레슨 전까지 할 연습 과제(구체적으로)"}`;
-    const checklistText = Object.entries(selections).map(([k, v]) => `${k}: ${v}`).join("\n");
-    const user = `학생: ${student?.name ?? "학생"}\n\n체크리스트:\n${checklistText}`;
+    const user = `학생: ${student?.name ?? "학생"}\n\n트레이너 관찰 메모:\n${memo}`;
     try { setResult(await callClaude(system, user)); }
     catch (e) { setError(e.message); }
     finally { setLoading(false); }

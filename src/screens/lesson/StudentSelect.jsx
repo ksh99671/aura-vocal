@@ -2,12 +2,14 @@ import { useState } from "react";
 import BackButton from "../../components/BackButton";
 import NavBar from "../../components/NavBar";
 import { useStudents } from "../../hooks/useFirestore";
+import { auth } from "../../firebase";
 
 export default function StudentSelect({ go }) {
   const { students, loading, addStudent } = useStudents();
   const [adding, setAdding] = useState(false);
   const [newName, setNewName] = useState("");
   const [saving, setSaving] = useState(false);
+  const [copiedId, setCopiedId] = useState(null);
 
   const handleAdd = async () => {
     if (!newName.trim()) return;
@@ -16,6 +18,14 @@ export default function StudentSelect({ go }) {
     setNewName("");
     setAdding(false);
     setSaving(false);
+  };
+
+  const copyLink = (studentId) => {
+    const trainerId = auth.currentUser?.uid;
+    const url = `${window.location.origin}?id=${studentId}&tid=${trainerId}`;
+    navigator.clipboard.writeText(url);
+    setCopiedId(studentId);
+    setTimeout(() => setCopiedId(null), 2000);
   };
 
   return (
@@ -39,13 +49,26 @@ export default function StudentSelect({ go }) {
           )}
 
           {students.map(s => (
-            <div key={s.id} className="student-card" onClick={() => go("checklist", { student: s })}>
-              <div className="student-avatar">{s.name.slice(-1)}</div>
-              <div style={{flex:1}}>
-                <p className="student-name">{s.name}</p>
-                <p className="student-sub">탭해서 레슨 시작</p>
+            <div key={s.id} style={{marginBottom:8}}>
+              <div className="student-card" onClick={() => go("checklist", { student: s })}>
+                <div className="student-avatar">{s.name.slice(-1)}</div>
+                <div style={{flex:1}}>
+                  <p className="student-name">{s.name}</p>
+                  <p className="student-sub">탭해서 레슨 시작</p>
+                </div>
+                <span className="student-arrow">→</span>
               </div>
-              <span className="student-arrow">→</span>
+              <button
+                onClick={() => copyLink(s.id)}
+                style={{
+                  width:"100%", marginTop:4, padding:"8px",
+                  background:"var(--accent-dim)", border:"0.5px solid var(--accent-mid)",
+                  borderRadius:10, fontSize:12, color:"var(--accent)",
+                  cursor:"pointer", fontFamily:"inherit",
+                }}
+              >
+                {copiedId === s.id ? "✓ 링크 복사됨" : "🔗 학생 링크 복사"}
+              </button>
             </div>
           ))}
 
@@ -77,7 +100,6 @@ export default function StudentSelect({ go }) {
           )}
         </>
       )}
-
       <NavBar go={go} active="home" />
     </div>
   );

@@ -1,16 +1,38 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import BackButton from "../../components/BackButton";
 import StepIndicator from "../../components/StepIndicator";
 import NavBar from "../../components/NavBar";
 import { useLessonDiagnosis } from "../../hooks/useClaude";
+import { useLessonLogs } from "../../hooks/useFirestore";
 
 export default function LessonResult({ go, params }) {
   const { diagnose, result, loading, error } = useLessonDiagnosis();
   const student = params?.student;
+  const { addLog } = useLessonLogs(student?.id);
+  const [saved, setSaved] = useState(false);
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    if (params?.selections) diagnose({ student, selections: params.selections });
+    if (params?.memo) diagnose({ student, memo: params.memo });
   }, []);
+
+  useEffect(() => {
+    if (result && !saved && student?.id) {
+      const save = async () => {
+        setSaving(true);
+        await addLog({
+          memo: params.memo,
+          pattern: result.pattern,
+          cause: result.cause,
+          directions: result.directions,
+          homework: result.homework,
+        });
+        setSaved(true);
+        setSaving(false);
+      };
+      save();
+    }
+  }, [result]);
 
   const copyKakao = () => {
     if (!result) return;
@@ -21,8 +43,8 @@ export default function LessonResult({ go, params }) {
 
   return (
     <div className="screen">
-      <BackButton label="체크리스트" onClick={() => go("checklist", { student })} />
-      <StepIndicator total={3} current={2} />
+      <BackButton label="레슨 메모" onClick={() => go("checklist", { student })} />
+      <StepIndicator total={2} current={1} />
       <p className="eyebrow">Lesson Result</p>
       <h2 className="screen-title">{student?.name || "학생"}<br /><strong>진단 결과</strong></h2>
 
@@ -36,7 +58,8 @@ export default function LessonResult({ go, params }) {
       {error && (
         <div className="result-card">
           <p className="error-text">{error}</p>
-          <button className="btn-secondary" style={{marginTop:12,width:"100%"}} onClick={() => diagnose({ student, selections: params?.selections })}>
+          <button className="btn-secondary" style={{marginTop:12, width:"100%"}}
+            onClick={() => diagnose({ student, memo: params?.memo })}>
             다시 시도
           </button>
         </div>
@@ -48,12 +71,14 @@ export default function LessonResult({ go, params }) {
             <p className="card-label">주요 패턴</p>
             <p className="card-value">{result.pattern ?? result.raw}</p>
           </div>
+
           {result.cause && (
             <div className="result-card">
               <p className="card-label">원인</p>
               <p className="result-body">{result.cause}</p>
             </div>
           )}
+
           <div className="result-card">
             <p className="card-label">오늘 레슨 방향</p>
             <div className="solution-list">
@@ -65,17 +90,22 @@ export default function LessonResult({ go, params }) {
               ))}
             </div>
           </div>
+
           {result.homework && (
             <div className="highlight-card">
               <p className="card-label">다음 레슨 전 과제</p>
               <p className="card-value">{result.homework}</p>
             </div>
           )}
+
+          {saving && <p style={{fontSize:12, color:"var(--text2)", textAlign:"center"}}>기록 저장 중...</p>}
+          {saved && <p style={{fontSize:12, color:"var(--accent)", textAlign:"center"}}>✓ 레슨 기록 저장됨</p>}
+
           <div className="btn-row" style={{marginBottom:8}}>
             <button className="btn-secondary" onClick={copyKakao}>📋 카톡 복사</button>
             <button className="btn-secondary" onClick={() => go("library")}>연습법 보기</button>
           </div>
-          <button className="btn-primary" onClick={() => go("studentSelect")}>저장 후 완료</button>
+          <button className="btn-primary" onClick={() => go("studentSelect")}>완료</button>
         </>
       )}
       <NavBar go={go} active="home" />
