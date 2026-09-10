@@ -5,31 +5,30 @@ import StudentJournalWrite from "./StudentJournalWrite";
 import StudentJournalDetail from "./StudentJournalDetail";
 import StudentHomework from "./StudentHomework";
 
-// URL에서 studentId 파싱 — 나중에 React Router 붙이면 교체
-const getStudentId = () => {
+const getParams = () => {
   const params = new URLSearchParams(window.location.search);
-  return params.get("id") || "demo";
+  return { studentId: params.get("id"), trainerId: params.get("tid") };
 };
 
 export default function StudentApp() {
-  const studentId = getStudentId();
-  const { student, journals, homework, loading, addJournal, checkHomework } = useStudentPage(studentId);
+  const { studentId, trainerId } = getParams();
+  const { student, journals, homework, loading, addJournal, checkHomework } = useStudentPage(studentId, trainerId);
   const [screen, setScreen] = useState("home");
   const [selected, setSelected] = useState(null);
 
   if (loading) {
     return (
-      <div className="screen" style={{paddingTop:80, textAlign:"center"}}>
-        <p className="loading-text">불러오는 중...</p>
+      <div style={{minHeight:"100vh", background:"var(--bg)", display:"flex", alignItems:"center", justifyContent:"center"}}>
+        <p style={{color:"var(--text2)", fontSize:14}}>불러오는 중...</p>
       </div>
     );
   }
 
   if (!student) {
     return (
-      <div className="screen" style={{paddingTop:80, textAlign:"center"}}>
-        <p className="screen-title">페이지를 찾을 수 없어요</p>
-        <p className="screen-sub">트레이너에게 링크를 다시 요청해주세요</p>
+      <div style={{minHeight:"100vh", background:"var(--bg)", display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", padding:"0 32px", textAlign:"center"}}>
+        <p style={{fontSize:20, fontWeight:600, color:"var(--text1)", marginBottom:8}}>페이지를 찾을 수 없어요</p>
+        <p style={{fontSize:14, color:"var(--text2)"}}>트레이너에게 링크를 다시 요청해주세요</p>
       </div>
     );
   }

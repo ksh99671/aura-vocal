@@ -1,4 +1,6 @@
 import { useState, useEffect } from "react";
+import { useAuth } from "./hooks/useAuth";
+import Login from "./screens/Login";
 import Home from "./screens/Home";
 import SelfHub from "./screens/self/SelfHub";
 import AudioRecord from "./screens/self/AudioRecord";
@@ -21,10 +23,10 @@ const SCREENS = {
 };
 
 export default function App() {
+  const { user, loading, signIn, logOut } = useAuth();
   const [{ screen, params }, setNav] = useState({ screen: "home", params: {} });
   const [theme, setTheme] = useState(() => localStorage.getItem("theme") || "dark");
 
-  // 학생 페이지 라우팅 — URL에 ?student=true 있으면 학생 앱으로
   const isStudentPage = new URLSearchParams(window.location.search).has("id");
 
   useEffect(() => {
@@ -35,13 +37,26 @@ export default function App() {
   const go = (screen, params = {}) => setNav({ screen, params });
   const toggleTheme = () => setTheme(t => t === "dark" ? "light" : "dark");
 
+  // 학생 페이지는 로그인 불필요
   if (isStudentPage) return <StudentApp />;
+
+  // 로딩 중
+  if (loading) {
+    return (
+      <div style={{minHeight:"100vh", background:"var(--bg)", display:"flex", alignItems:"center", justifyContent:"center"}}>
+        <p style={{color:"var(--text2)", fontSize:14}}>로딩 중...</p>
+      </div>
+    );
+  }
+
+  // 로그인 안 된 경우
+  if (!user) return <Login onSignIn={signIn} />;
 
   const Screen = SCREENS[screen] ?? Home;
 
   return (
     <div className="app-root">
-      <Screen go={go} params={params} theme={theme} toggleTheme={toggleTheme} />
+      <Screen go={go} params={params} theme={theme} toggleTheme={toggleTheme} user={user} logOut={logOut} />
     </div>
   );
 }

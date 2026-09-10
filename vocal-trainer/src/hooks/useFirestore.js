@@ -1,14 +1,13 @@
 import { useState, useEffect } from "react";
 import {
   collection, addDoc, getDocs, doc, updateDoc,
-  query, orderBy, serverTimestamp, getDoc, setDoc
+  query, orderBy, serverTimestamp, getDoc,
 } from "firebase/firestore";
-import { db } from "../firebase";
+import { db, auth } from "../firebase";
 
-// 트레이너 ID (나중에 Auth 붙이면 교체)
-const TRAINER_ID = "trainer_default";
+const getTrainerId = () => auth.currentUser?.uid || "trainer_default";
 
-// ── 학생 관련 ──────────────────────────────────────
+// ── 학생 관련 ──
 export function useStudents() {
   const [students, setStudents] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -16,7 +15,7 @@ export function useStudents() {
   const fetchStudents = async () => {
     setLoading(true);
     try {
-      const ref = collection(db, "trainers", TRAINER_ID, "students");
+      const ref = collection(db, "trainers", getTrainerId(), "students");
       const snap = await getDocs(query(ref, orderBy("createdAt", "desc")));
       setStudents(snap.docs.map(d => ({ id: d.id, ...d.data() })));
     } catch (e) { console.error(e); }
@@ -24,7 +23,7 @@ export function useStudents() {
   };
 
   const addStudent = async (name) => {
-    const ref = collection(db, "trainers", TRAINER_ID, "students");
+    const ref = collection(db, "trainers", getTrainerId(), "students");
     const docRef = await addDoc(ref, { name, createdAt: serverTimestamp() });
     await fetchStudents();
     return docRef.id;
@@ -34,7 +33,7 @@ export function useStudents() {
   return { students, loading, addStudent, refetch: fetchStudents };
 }
 
-// ── 레슨 기록 관련 ──────────────────────────────────
+// ── 레슨 기록 ──
 export function useLessonLogs(studentId) {
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -43,7 +42,7 @@ export function useLessonLogs(studentId) {
     if (!studentId) return;
     setLoading(true);
     try {
-      const ref = collection(db, "trainers", TRAINER_ID, "students", studentId, "lessonLogs");
+      const ref = collection(db, "trainers", getTrainerId(), "students", studentId, "lessonLogs");
       const snap = await getDocs(query(ref, orderBy("date", "desc")));
       setLogs(snap.docs.map(d => ({ id: d.id, ...d.data() })));
     } catch (e) { console.error(e); }
@@ -51,13 +50,13 @@ export function useLessonLogs(studentId) {
   };
 
   const addLog = async (data) => {
-    const ref = collection(db, "trainers", TRAINER_ID, "students", studentId, "lessonLogs");
+    const ref = collection(db, "trainers", getTrainerId(), "students", studentId, "lessonLogs");
     await addDoc(ref, { ...data, date: serverTimestamp() });
     await fetchLogs();
   };
 
   const updateLog = async (logId, data) => {
-    const ref = doc(db, "trainers", TRAINER_ID, "students", studentId, "lessonLogs", logId);
+    const ref = doc(db, "trainers", getTrainerId(), "students", studentId, "lessonLogs", logId);
     await updateDoc(ref, data);
     await fetchLogs();
   };
@@ -66,7 +65,7 @@ export function useLessonLogs(studentId) {
   return { logs, loading, addLog, updateLog, refetch: fetchLogs };
 }
 
-// ── 셀프 진단 기록 ──────────────────────────────────
+// ── 셀프 진단 기록 ──
 export function useSelfDiagnosisLogs() {
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -74,7 +73,7 @@ export function useSelfDiagnosisLogs() {
   const fetchLogs = async () => {
     setLoading(true);
     try {
-      const ref = collection(db, "trainers", TRAINER_ID, "selfDiagnoses");
+      const ref = collection(db, "trainers", getTrainerId(), "selfDiagnoses");
       const snap = await getDocs(query(ref, orderBy("createdAt", "desc")));
       setLogs(snap.docs.map(d => ({ id: d.id, ...d.data() })));
     } catch (e) { console.error(e); }
@@ -82,7 +81,7 @@ export function useSelfDiagnosisLogs() {
   };
 
   const addLog = async (data) => {
-    const ref = collection(db, "trainers", TRAINER_ID, "selfDiagnoses");
+    const ref = collection(db, "trainers", getTrainerId(), "selfDiagnoses");
     await addDoc(ref, { ...data, createdAt: serverTimestamp() });
     await fetchLogs();
   };
@@ -91,61 +90,54 @@ export function useSelfDiagnosisLogs() {
   return { logs, loading, addLog, refetch: fetchLogs };
 }
 
-// ── 학생 페이지용 (학생이 직접 접속) ──────────────────
-export function useStudentPage(studentId) {
+// ── 학생 페이지용 ──
+export function useStudentPage(studentId, trainerId) {
   const [student, setStudent] = useState(null);
   const [journals, setJournals] = useState([]);
   const [homework, setHomework] = useState([]);
   const [loading, setLoading] = useState(true);
 
   const fetchData = async () => {
-    if (!studentId) return;
+    if (!studentId || !trainerId) return;
     setLoading(true);
     try {
-      // 학생 정보
-      const studentRef = doc(db, "trainers", TRAINER_ID, "students", studentId);
+      const studentRef = doc(db, "trainers", trainerId, "students", studentId);
       const studentSnap = await getDoc(studentRef);
       if (studentSnap.exists()) setStudent({ id: studentSnap.id, ...studentSnap.data() });
 
-      // 연습 일지
-      const journalRef = collection(db, "trainers", TRAINER_ID, "students", studentId, "journals");
+      const journalRef = collection(db, "trainers", trainerId, "students", studentId, "journals");
       const journalSnap = await getDocs(query(journalRef, orderBy("createdAt", "desc")));
       setJournals(journalSnap.docs.map(d => ({ id: d.id, ...d.data() })));
 
-      // 과제
-      const hwRef = collection(db, "trainers", TRAINER_ID, "students", studentId, "homework");
+      const hwRef = collection(db, "trainers", trainerId, "students", studentId, "homework");
       const hwSnap = await getDocs(query(hwRef, orderBy("createdAt", "desc")));
       setHomework(hwSnap.docs.map(d => ({ id: d.id, ...d.data() })));
     } catch (e) { console.error(e); }
     finally { setLoading(false); }
   };
 
-  // 연습 일지 추가
   const addJournal = async (data) => {
-    const ref = collection(db, "trainers", TRAINER_ID, "students", studentId, "journals");
+    const ref = collection(db, "trainers", trainerId, "students", studentId, "journals");
     await addDoc(ref, { ...data, createdAt: serverTimestamp() });
     await fetchData();
   };
 
-  // 과제 완료 체크
   const checkHomework = async (hwId, done) => {
-    const ref = doc(db, "trainers", TRAINER_ID, "students", studentId, "homework", hwId);
+    const ref = doc(db, "trainers", trainerId, "students", studentId, "homework", hwId);
     await updateDoc(ref, { done });
     await fetchData();
   };
 
-  useEffect(() => { fetchData(); }, [studentId]);
-  return { student, journals, homework, loading, addJournal, checkHomework, refetch: fetchData };
+  useEffect(() => { fetchData(); }, [studentId, trainerId]);
+  return { student, journals, homework, loading, addJournal, checkHomework };
 }
 
-// ── 트레이너가 과제 추가 ──────────────────────────────
-export async function addHomework(studentId, content) {
-  const ref = collection(db, "trainers", TRAINER_ID, "students", studentId, "homework");
+export async function addHomework(trainerId, studentId, content) {
+  const ref = collection(db, "trainers", trainerId, "students", studentId, "homework");
   await addDoc(ref, { content, done: false, createdAt: serverTimestamp() });
 }
 
-// ── 트레이너가 학생 일지에 피드백 추가 ────────────────
-export async function addFeedback(studentId, journalId, feedback) {
-  const ref = doc(db, "trainers", TRAINER_ID, "students", studentId, "journals", journalId);
+export async function addFeedback(trainerId, studentId, journalId, feedback) {
+  const ref = doc(db, "trainers", trainerId, "students", studentId, "journals", journalId);
   await updateDoc(ref, { trainerFeedback: feedback, feedbackAt: serverTimestamp() });
 }
