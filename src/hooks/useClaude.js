@@ -1,11 +1,13 @@
 import { useState } from "react";
 
-const API_KEY = import.meta.env.VITE_ANTHROPIC_API_KEY;
+const API_URL = import.meta.env.DEV
+  ? "/api/claude"
+  : "https://aura-claude.ksh99671.workers.dev";
 
 async function callClaude(systemPrompt, userPrompt) {
-  const res = await fetch("/api/claude", {
+  const res = await fetch(API_URL, {
     method: "POST",
-    headers: { "Content-Type": "application/json", "x-api-key": API_KEY },
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       model: "claude-sonnet-4-6",
       max_tokens: 1024,
@@ -20,7 +22,6 @@ async function callClaude(systemPrompt, userPrompt) {
   catch { return { raw }; }
 }
 
-// ── 셀프 진단 ──
 export function useSelfDiagnosis() {
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -41,7 +42,6 @@ export function useSelfDiagnosis() {
   return { diagnose, result, loading, error };
 }
 
-// ── 레슨 진단 (자유 메모 기반) ──
 export function useLessonDiagnosis() {
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
