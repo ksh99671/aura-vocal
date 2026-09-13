@@ -20,15 +20,13 @@ export default function LessonResult({ go, params }) {
     if (result && !saved && student?.id) {
       const save = async () => {
         setSaving(true);
-        // undefined 값 제거
-        const logData = {
-          memo: params.memo || "",
-          pattern: result.pattern || result.raw || "",
-          cause: result.cause || "",
-          directions: result.directions || [],
-          homework: result.homework || "",
-        };
-        await addLog(logData);
+        await addLog({
+          memo: params.memo,
+          pattern: result.pattern,
+          cause: result.cause,
+          directions: result.directions,
+          homework: result.homework,
+        });
         setSaved(true);
         setSaving(false);
       };
@@ -38,7 +36,7 @@ export default function LessonResult({ go, params }) {
 
   const copyKakao = () => {
     if (!result) return;
-    const text = `[레슨 피드백 - ${student?.name ?? "학생"}]\n주요 패턴: ${result.pattern || ""}\n\n오늘 연습 방향:\n${result.directions?.map((d, i) => `${i+1}. ${d}`).join("\n") || ""}${result.homework ? `\n\n다음 레슨 전 과제:\n${result.homework}` : ""}`;
+    const text = `[레슨 피드백 - ${student?.name ?? "학생"}]\n주요 패턴: ${result.pattern}\n\n오늘 연습 방향:\n${result.directions?.map((d, i) => `${i+1}. ${d}`).join("\n")}${result.homework ? `\n\n다음 레슨 전 과제:\n${result.homework}` : ""}`;
     navigator.clipboard.writeText(text);
     alert("카카오톡 메시지가 복사됐어요!");
   };
@@ -71,7 +69,7 @@ export default function LessonResult({ go, params }) {
         <>
           <div className="result-main">
             <p className="card-label">주요 패턴</p>
-            <p className="card-value">{result.pattern || result.raw || "분석 완료"}</p>
+            <p className="card-value">{result.pattern ?? result.raw}</p>
           </div>
 
           {result.cause && (
@@ -81,31 +79,22 @@ export default function LessonResult({ go, params }) {
             </div>
           )}
 
-          {result.directions && result.directions.length > 0 && (
-            <div className="result-card">
-              <p className="card-label">오늘 레슨 방향</p>
-              <div className="solution-list">
-                {result.directions.map((d, i) => (
-                  <div key={i} className="solution-item">
-                    <span className="sol-num">0{i+1}</span>
-                    <span className="sol-text">{d}</span>
-                  </div>
-                ))}
-              </div>
+          <div className="result-card">
+            <p className="card-label">오늘 레슨 방향</p>
+            <div className="solution-list">
+              {result.directions?.map((d, i) => (
+                <div key={i} className="solution-item">
+                  <span className="sol-num">0{i+1}</span>
+                  <span className="sol-text">{d}</span>
+                </div>
+              ))}
             </div>
-          )}
+          </div>
 
           {result.homework && (
             <div className="highlight-card">
               <p className="card-label">다음 레슨 전 과제</p>
               <p className="card-value">{result.homework}</p>
-            </div>
-          )}
-
-          {result.raw && (
-            <div className="result-card">
-              <p className="card-label">AI 분석</p>
-              <p className="result-body">{result.raw}</p>
             </div>
           )}
 

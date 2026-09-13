@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useAuth } from "./hooks/useAuth";
 import Login from "./screens/Login";
 import Home from "./screens/Home";
+import Settings from "./screens/Settings";
 import SelfHub from "./screens/self/SelfHub";
 import AudioRecord from "./screens/self/AudioRecord";
 import SymptomSelect from "./screens/self/SymptomSelect";
@@ -15,7 +16,8 @@ import History from "./screens/shared/History";
 import StudentApp from "./screens/student/StudentApp";
 
 const SCREENS = {
-  home: Home, selfHub: SelfHub, audioRecord: AudioRecord,
+  home: Home, settings: Settings,
+  selfHub: SelfHub, audioRecord: AudioRecord,
   symptomSelect: SymptomSelect, selfResult: SelfResult,
   lessonHub: LessonHub, studentSelect: StudentSelect,
   checklist: Checklist, lessonResult: LessonResult,
@@ -37,10 +39,8 @@ export default function App() {
   const go = (screen, params = {}) => setNav({ screen, params });
   const toggleTheme = () => setTheme(t => t === "dark" ? "light" : "dark");
 
-  // 학생 페이지는 로그인 불필요
   if (isStudentPage) return <StudentApp />;
 
-  // 로딩 중
   if (loading) {
     return (
       <div style={{minHeight:"100vh", background:"var(--bg)", display:"flex", alignItems:"center", justifyContent:"center"}}>
@@ -49,7 +49,6 @@ export default function App() {
     );
   }
 
-  // 로그인 안 된 경우
   if (!user) return <Login onSignIn={signIn} />;
 
   const Screen = SCREENS[screen] ?? Home;

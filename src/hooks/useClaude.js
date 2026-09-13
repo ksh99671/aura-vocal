@@ -1,13 +1,34 @@
 import { useState } from "react";
+import { doc, getDoc } from "firebase/firestore";
+import { db, auth } from "../firebase";
 
-const API_URL = import.meta.env.DEV
-  ? "/api/claude"
-  : "https://aura-claude.ksh99671.workers.dev";
+// 트레이너 API 키 가져오기
+async function getApiKey() {
+  const user = auth.currentUser;
+  if (!user) return null;
+  const ref = doc(db, "trainers", user.uid, "settings", "api");
+  const snap = await getDoc(ref);
+  if (snap.exists() && snap.data().anthropicKey) {
+    return snap.data().anthropicKey;
+  }
+  return null;
+}
 
 async function callClaude(systemPrompt, userPrompt) {
-  const res = await fetch(API_URL, {
+  const apiKey = await getApiKey();
+
+  if (!apiKey) {
+    throw new Error("API 키가 없어요. 설정에서 Anthropic API 키를 입력해주세요.");
+  }
+
+  const res = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+      "x-api-key": apiKey,
+      "anthropic-version": "2023-06-01",
+      "anthropic-dangerous-direct-browser-access": "true",
+    },
     body: JSON.stringify({
       model: "claude-sonnet-4-6",
       max_tokens: 1024,
