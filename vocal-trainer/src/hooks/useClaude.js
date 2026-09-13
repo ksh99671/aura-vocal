@@ -1,11 +1,34 @@
 import { useState } from "react";
+import { doc, getDoc } from "firebase/firestore";
+import { db, auth } from "../firebase";
 
-const API_KEY = import.meta.env.VITE_ANTHROPIC_API_KEY;
+// 트레이너 API 키 가져오기
+async function getApiKey() {
+  const user = auth.currentUser;
+  if (!user) return null;
+  const ref = doc(db, "trainers", user.uid, "settings", "api");
+  const snap = await getDoc(ref);
+  if (snap.exists() && snap.data().anthropicKey) {
+    return snap.data().anthropicKey;
+  }
+  return null;
+}
 
 async function callClaude(systemPrompt, userPrompt) {
-  const res = await fetch("/api/claude", {
+  const apiKey = await getApiKey();
+
+  if (!apiKey) {
+    throw new Error("API 키가 없어요. 설정에서 Anthropic API 키를 입력해주세요.");
+  }
+
+  const res = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
-    headers: { "Content-Type": "application/json", "x-api-key": API_KEY },
+    headers: {
+      "Content-Type": "application/json",
+      "x-api-key": apiKey,
+      "anthropic-version": "2023-06-01",
+      "anthropic-dangerous-direct-browser-access": "true",
+    },
     body: JSON.stringify({
       model: "claude-sonnet-4-6",
       max_tokens: 1024,
@@ -20,7 +43,6 @@ async function callClaude(systemPrompt, userPrompt) {
   catch { return { raw }; }
 }
 
-// ── 셀프 진단 ──
 export function useSelfDiagnosis() {
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -41,7 +63,6 @@ export function useSelfDiagnosis() {
   return { diagnose, result, loading, error };
 }
 
-// ── 레슨 진단 (자유 메모 기반) ──
 export function useLessonDiagnosis() {
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
