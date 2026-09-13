@@ -1,9 +1,10 @@
 export default function NavBar({ go, active = "home" }) {
   const items = [
     { key: "home", icon: "⊙", label: null },
-    { key: "history", icon: "◷", label: "기록" },
-    { key: "library", icon: "⊞", label: "라이브러리" },
-    { key: "settings", icon: "◈", label: "설정" },
+    { key: "history", icon: "◷", label: "History" },
+    { key: "studentSelect", icon: "👥", label: "Students" },
+    { key: "library", icon: "📓", label: "Vault" },
+    { key: "settings", icon: "◈", label: "Settings" },
   ];
   return (
     <nav className="nav-bar">

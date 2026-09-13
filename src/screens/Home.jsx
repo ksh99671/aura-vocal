@@ -1,12 +1,47 @@
+import { useState } from "react";
+
+const STUDENT_COLORS = ["#c9a96e","#a78bda","#5ec4a0","#e07b6a","#6ab0e0","#e0a06a"];
+
+const MOCK_STUDENTS = [
+  { id: "s1", name: "학생 A", category: "exam", color: "#c9a96e" },
+  { id: "s2", name: "학생 B", category: "hobby", color: "#a78bda" },
+  { id: "s3", name: "학생 C", category: "exam", color: "#5ec4a0" },
+];
+
+const MOCK_LESSONS = {
+  2: ["s1"], 4: ["s2"], 5: ["s1","s2"],
+  8: ["s2"], 9: ["s1"], 11: ["s1","s2","s3"],
+  13: ["s1","s2"], 15: ["s3"], 16: ["s1","s2","s3","s3"],
+  18: ["s1","s2"], 21: ["s1"], 22: ["s1","s2"],
+  24: ["s2"], 25: ["s1","s2","s3"],
+};
+
+const TODAY = 13;
+
+function getHeatLevel(count) {
+  if (!count) return "h0";
+  if (count === 1) return "h1";
+  if (count === 2) return "h2";
+  if (count === 3) return "h3";
+  return "h4";
+}
+
 export default function Home({ go, theme, toggleTheme }) {
   const isDark = theme === "dark";
+  const [selectedDay, setSelectedDay] = useState(TODAY);
+
+  const selectedLessons = (MOCK_LESSONS[selectedDay] || []).map(sid =>
+    MOCK_STUDENTS.find(s => s.id === sid)
+  ).filter(Boolean);
 
   return (
     <div className="screen">
+
+      {/* 헤더 */}
       <div className="home-header">
         <div>
           <p className="home-greeting">안녕하세요 👋</p>
-          <h1 className="home-title">오늘<br /><strong>연습할까요?</strong></h1>
+          <h1 className="home-title">오늘의<br /><strong>레슨 일정</strong></h1>
         </div>
         <button className="theme-toggle" onClick={toggleTheme}>
           <span className="theme-toggle-icon">{isDark ? "🌙" : "☀️"}</span>
@@ -16,83 +51,74 @@ export default function Home({ go, theme, toggleTheme }) {
         </button>
       </div>
 
-      <div className="arc-section">
-        <svg className="arc-svg" viewBox="0 0 190 190">
-          <circle cx="95" cy="95" r="88" fill="none" stroke="rgba(201,169,110,0.06)" strokeWidth="0.5"/>
-          <circle cx="95" cy="95" r="76" fill="none" stroke="rgba(201,169,110,0.1)" strokeWidth="0.8"
-            style={{transformOrigin:"95px 95px",animation:"breathe 5s ease-in-out infinite"}}/>
-          <circle cx="95" cy="95" r="89" fill="none" stroke="rgba(201,169,110,0.35)" strokeWidth="1"
-            strokeDasharray="45 20 10 285" strokeLinecap="round"
-            style={{transformOrigin:"95px 95px",animation:"arc-slow 18s linear infinite"}}/>
-          <circle cx="95" cy="95" r="68" fill="none" stroke="rgba(201,169,110,0.18)" strokeWidth="0.7"
-            strokeDasharray="20 28" strokeLinecap="round"
-            style={{transformOrigin:"95px 95px",animation:"arc-slow-rev 12s linear infinite"}}/>
-          <circle cx="95" cy="95" r="54" fill="none" stroke="rgba(201,169,110,0.12)" strokeWidth="0.5"
-            style={{transformOrigin:"95px 95px",animation:"breathe2 6s ease-in-out infinite"}}/>
-          <circle cx="95" cy="95" r="36" fill="rgba(201,169,110,0.05)" style={{animation:"breathe 5s ease-in-out infinite"}}/>
-          <circle cx="95" cy="95" r="22" fill="rgba(201,169,110,0.08)" style={{animation:"breathe2 4s ease-in-out infinite"}}/>
-          <circle cx="95" cy="95" r="8" fill="rgba(201,169,110,0.5)" style={{animation:"glow-pulse 4s ease-in-out infinite"}}/>
-          <circle cx="95" cy="9" r="2" fill="rgba(201,169,110,0.5)" style={{animation:"breathe 3s ease-in-out infinite"}}/>
-          <circle cx="166" cy="52" r="1.5" fill="rgba(201,169,110,0.4)" style={{animation:"breathe2 4s ease-in-out infinite"}}/>
-          <circle cx="24" cy="138" r="1.5" fill="rgba(201,169,110,0.35)" style={{animation:"breathe 3.5s ease-in-out infinite"}}/>
-        </svg>
-        <div className="arc-center">
-          <p className="arc-num">12</p>
-          <p className="arc-label">진단 횟수</p>
+      {/* 달력 */}
+      <div className="section-header">
+        <p className="section-title">2026년 9월</p>
+        <button className="section-link">+ 일정 추가</button>
+      </div>
+      <div className="cal-card">
+        <div className="cal-header">
+          <button className="cal-nav">‹</button>
+          <span className="cal-month">9월</span>
+          <button className="cal-nav">›</button>
+        </div>
+        <div className="cal-grid">
+          {["일","월","화","수","목","금","토"].map(d => (
+            <div key={d} className="cal-day-label">{d}</div>
+          ))}
+          <div className="cal-day" />
+          {Array.from({length: 27}, (_, i) => i + 1).map(day => {
+            const count = (MOCK_LESSONS[day] || []).length;
+            const level = getHeatLevel(count);
+            return (
+              <div
+                key={day}
+                className={`cal-day ${level} ${day === TODAY ? "today" : ""} ${day === selectedDay ? "selected" : ""}`}
+                onClick={() => setSelectedDay(day)}
+              >
+                <span className="cal-day-num">{day}</span>
+                {count > 0 && <span className="cal-day-count">{count}명</span>}
+              </div>
+            );
+          })}
         </div>
       </div>
 
-      <div className="mode-section">
-        <div className="mode-card-main" onClick={() => go("selfHub")}>
-          <div className="card-deco">🎙</div>
-          <p className="card-eyebrow">Self Diagnosis</p>
-          <h2 className="card-title">셀프 진단</h2>
-          <p className="card-desc">내 발성 상태를 직접 측정하고 AI가 문제점과 해결 방안을 제시해요</p>
-          <span className="card-btn">시작하기 →</span>
+      {/* 선택된 날 일정 */}
+      {selectedLessons.length > 0 && (
+        <div className="schedule-card">
+          <p className="schedule-label">{selectedDay}일 일정</p>
+          {selectedLessons.map((s, i) => (
+            <div key={i} className="schedule-item">
+              <div className="schedule-bar" style={{background: s.color}} />
+              <div style={{flex:1}}>
+                <p className="schedule-name">{s.name}</p>
+                <p className="schedule-time">오후 {2 + i * 2}:00 · 60분</p>
+              </div>
+              <span className="schedule-tag" style={
+                s.category === "exam"
+                  ? {background:"rgba(167,139,218,0.15)", color:"#a78bda"}
+                  : {background:"rgba(94,196,160,0.15)", color:"#5ec4a0"}
+              }>
+                {s.category === "exam" ? "입시" : "취미"}
+              </span>
+            </div>
+          ))}
         </div>
-        <div className="mode-card-sub" onClick={() => go("lessonHub")}>
-          <div>
-            <p className="sub-eyebrow">Lesson Mode</p>
-            <p className="sub-title">레슨 모드</p>
-            <p className="sub-desc">학생 진단 · 기록 관리 · 카톡 공유</p>
-          </div>
-          <div className="sub-arrow">→</div>
-        </div>
-      </div>
+      )}
 
       <div className="section-divider" />
 
-      <div className="section-header">
-        <p className="section-title">최근 활동</p>
-        <button className="section-link" onClick={() => go("history")}>전체 보기 →</button>
+      {/* 레슨 카드 */}
+      <div className="lesson-card-main" onClick={() => go("lessonHub")}>
+        <div className="lesson-card-deco">👥</div>
+        <p className="lesson-card-ey">Lesson Mode</p>
+        <h2 className="lesson-card-title">레슨 시작</h2>
+        <p className="lesson-card-desc">학생을 선택하고 레슨 메모를 작성해요</p>
+        <span className="lesson-card-btn">시작하기 →</span>
       </div>
 
-      {[
-        { icon: "🎙", name: "셀프 진단", sub: "성구 전환 불안정 · 해결 방안 3개", time: "오늘" },
-        { icon: "👥", name: "레슨 — 학생 A", sub: "chest-heavy · 호흡 지지 연습법", time: "어제" },
-        { icon: "🎙", name: "셀프 진단", sub: "피치 안정성 양호 · 비브라토 확인", time: "3일 전" },
-      ].map((item, i) => (
-        <div key={i} className="activity-item" onClick={() => go("history")}>
-          <div className="activity-icon">{item.icon}</div>
-          <div style={{flex:1}}>
-            <p className="activity-name">{item.name}</p>
-            <p className="activity-sub">{item.sub}</p>
-          </div>
-          <span className="activity-time">{item.time}</span>
-        </div>
-      ))}
-
-      <div style={{height:20}} />
-
-      <div className="lib-banner" onClick={() => go("library")}>
-        <div className="lib-icon-box">📚</div>
-        <div className="lib-text">
-          <p className="lib-eyebrow">Library</p>
-          <p className="lib-name">발성 라이브러리</p>
-        </div>
-        <span className="lib-arr">→</span>
-      </div>
-
+      {/* 탭바 */}
       <nav className="nav-bar">
         <button className="nav-item active">
           <span className="nav-icon">⊙</span>
@@ -100,15 +126,19 @@ export default function Home({ go, theme, toggleTheme }) {
         </button>
         <button className="nav-item" onClick={() => go("history")}>
           <span className="nav-icon">◷</span>
-          <span className="nav-label">기록</span>
+          <span className="nav-label">History</span>
+        </button>
+        <button className="nav-item" onClick={() => go("studentSelect")}>
+          <span className="nav-icon">👥</span>
+          <span className="nav-label">Students</span>
         </button>
         <button className="nav-item" onClick={() => go("library")}>
-          <span className="nav-icon">⊞</span>
-          <span className="nav-label">라이브러리</span>
+          <span className="nav-icon">📓</span>
+          <span className="nav-label">Vault</span>
         </button>
         <button className="nav-item" onClick={() => go("settings")}>
           <span className="nav-icon">◈</span>
-          <span className="nav-label">설정</span>
+          <span className="nav-label">Settings</span>
         </button>
       </nav>
     </div>
