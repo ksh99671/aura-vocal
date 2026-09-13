@@ -106,7 +106,7 @@ export default function Home({ go, theme, toggleTheme }) {
           <span className="nav-icon">⊞</span>
           <span className="nav-label">라이브러리</span>
         </button>
-        <button className="nav-item">
+        <button className="nav-item" onClick={() => go("settings")}>
           <span className="nav-icon">◈</span>
           <span className="nav-label">설정</span>
         </button>
