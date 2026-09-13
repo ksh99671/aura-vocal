@@ -2,41 +2,34 @@ import { useEffect, useState } from "react";
 import BackButton from "../../components/BackButton";
 import StepIndicator from "../../components/StepIndicator";
 import NavBar from "../../components/NavBar";
-import { useLessonDiagnosis } from "../../hooks/useClaude";
 import { useLessonLogs } from "../../hooks/useFirestore";
 
 export default function LessonResult({ go, params }) {
-  const { diagnose, result, loading, error } = useLessonDiagnosis();
   const student = params?.student;
   const { addLog } = useLessonLogs(student?.id);
   const [saved, setSaved] = useState(false);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    if (params?.memo) diagnose({ student, memo: params.memo });
-  }, []);
-
-  useEffect(() => {
-    if (result && !saved && student?.id) {
+    if (params?.memo && student?.id && !saved) {
       const save = async () => {
         setSaving(true);
         await addLog({
-          memo: params.memo,
-          pattern: result.pattern,
-          cause: result.cause,
-          directions: result.directions,
-          homework: result.homework,
+          memo: params.memo || "",
+          pattern: "",
+          cause: "",
+          directions: [],
+          homework: "",
         });
         setSaved(true);
         setSaving(false);
       };
       save();
     }
-  }, [result]);
+  }, []);
 
   const copyKakao = () => {
-    if (!result) return;
-    const text = `[레슨 피드백 - ${student?.name ?? "학생"}]\n주요 패턴: ${result.pattern}\n\n오늘 연습 방향:\n${result.directions?.map((d, i) => `${i+1}. ${d}`).join("\n")}${result.homework ? `\n\n다음 레슨 전 과제:\n${result.homework}` : ""}`;
+    const text = `[레슨 메모 - ${student?.name ?? "학생"}]\n\n${params?.memo || ""}`;
     navigator.clipboard.writeText(text);
     alert("카카오톡 메시지가 복사됐어요!");
   };
@@ -46,68 +39,52 @@ export default function LessonResult({ go, params }) {
       <BackButton label="레슨 메모" onClick={() => go("checklist", { student })} />
       <StepIndicator total={2} current={1} />
       <p className="eyebrow">Lesson Result</p>
-      <h2 className="screen-title">{student?.name || "학생"}<br /><strong>진단 결과</strong></h2>
+      <h2 className="screen-title">{student?.name || "학생"}<br /><strong>레슨 기록</strong></h2>
 
-      {loading && (
-        <div className="loading-card">
-          <p className="loading-text">AI 진단 중...</p>
-          <p className="loading-sub">레슨 방향 분석 중이에요</p>
-        </div>
-      )}
+      {/* 메모 내용 */}
+      <div className="result-card">
+        <p className="card-label">오늘 레슨 메모</p>
+        <p className="result-body" style={{marginTop:8, whiteSpace:"pre-line"}}>{params?.memo}</p>
+      </div>
 
-      {error && (
-        <div className="result-card">
-          <p className="error-text">{error}</p>
-          <button className="btn-secondary" style={{marginTop:12, width:"100%"}}
-            onClick={() => diagnose({ student, memo: params?.memo })}>
-            다시 시도
-          </button>
-        </div>
-      )}
+      {/* AI 진단 안내 */}
+      <div style={{
+        background:"var(--accent-dim)",
+        border:"0.5px solid var(--accent-mid)",
+        borderRadius:16,
+        padding:"18px 18px",
+        marginBottom:10,
+        textAlign:"center"
+      }}>
+        <p style={{fontSize:14, fontWeight:600, color:"var(--accent)", marginBottom:6}}>✨ AI 진단</p>
+        <p style={{fontSize:13, color:"var(--text2)", lineHeight:1.7}}>
+          구독하면 AI가 메모를 분석해서{"\n"}레슨 방향과 연습 과제를 제안해줘요
+        </p>
+        <button style={{
+          marginTop:12,
+          background:"var(--accent)",
+          color:"#0e0e12",
+          border:"none",
+          borderRadius:10,
+          padding:"10px 20px",
+          fontSize:13,
+          fontWeight:600,
+          cursor:"pointer",
+          fontFamily:"inherit"
+        }}>
+          구독하기 (준비 중)
+        </button>
+      </div>
 
-      {result && !loading && (
-        <>
-          <div className="result-main">
-            <p className="card-label">주요 패턴</p>
-            <p className="card-value">{result.pattern ?? result.raw}</p>
-          </div>
+      {saving && <p style={{fontSize:12, color:"var(--text2)", textAlign:"center"}}>기록 저장 중...</p>}
+      {saved && <p style={{fontSize:12, color:"var(--accent)", textAlign:"center"}}>✓ 레슨 기록 저장됨</p>}
 
-          {result.cause && (
-            <div className="result-card">
-              <p className="card-label">원인</p>
-              <p className="result-body">{result.cause}</p>
-            </div>
-          )}
+      <div className="btn-row" style={{marginBottom:8}}>
+        <button className="btn-secondary" onClick={copyKakao}>📋 카톡 복사</button>
+        <button className="btn-secondary" onClick={() => go("library")}>연습법 보기</button>
+      </div>
+      <button className="btn-primary" onClick={() => go("studentSelect")}>완료</button>
 
-          <div className="result-card">
-            <p className="card-label">오늘 레슨 방향</p>
-            <div className="solution-list">
-              {result.directions?.map((d, i) => (
-                <div key={i} className="solution-item">
-                  <span className="sol-num">0{i+1}</span>
-                  <span className="sol-text">{d}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {result.homework && (
-            <div className="highlight-card">
-              <p className="card-label">다음 레슨 전 과제</p>
-              <p className="card-value">{result.homework}</p>
-            </div>
-          )}
-
-          {saving && <p style={{fontSize:12, color:"var(--text2)", textAlign:"center"}}>기록 저장 중...</p>}
-          {saved && <p style={{fontSize:12, color:"var(--accent)", textAlign:"center"}}>✓ 레슨 기록 저장됨</p>}
-
-          <div className="btn-row" style={{marginBottom:8}}>
-            <button className="btn-secondary" onClick={copyKakao}>📋 카톡 복사</button>
-            <button className="btn-secondary" onClick={() => go("library")}>연습법 보기</button>
-          </div>
-          <button className="btn-primary" onClick={() => go("studentSelect")}>완료</button>
-        </>
-      )}
       <NavBar go={go} active="home" />
     </div>
   );

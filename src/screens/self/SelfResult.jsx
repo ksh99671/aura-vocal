@@ -2,100 +2,89 @@ import { useEffect, useState } from "react";
 import BackButton from "../../components/BackButton";
 import StepIndicator from "../../components/StepIndicator";
 import NavBar from "../../components/NavBar";
-import { useSelfDiagnosis } from "../../hooks/useClaude";
-import { useSelfDiagnosisLogs } from "../../hooks/useFirestore";
+import { useLessonLogs } from "../../hooks/useFirestore";
 
-export default function SelfResult({ go, params }) {
-  const { diagnose, result, loading, error } = useSelfDiagnosis();
-  const { addLog } = useSelfDiagnosisLogs();
+export default function LessonResult({ go, params }) {
+  const student = params?.student;
+  const { addLog } = useLessonLogs(student?.id);
   const [saved, setSaved] = useState(false);
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    if (params?.symptom) diagnose({ symptom: params.symptom, range: params.range });
-  }, []);
-
-  useEffect(() => {
-    if (result && !saved) {
+    if (params?.memo && student?.id && !saved) {
       const save = async () => {
+        setSaving(true);
         await addLog({
-          symptom: params.symptom,
-          range: params.range,
-          issues: result.issues,
-          cause: result.cause,
-          solutions: result.solutions,
-          exercise: result.exercise,
+          memo: params.memo || "",
+          pattern: "",
+          cause: "",
+          directions: [],
+          homework: "",
         });
         setSaved(true);
+        setSaving(false);
       };
       save();
     }
-  }, [result]);
+  }, []);
+
+  const copyKakao = () => {
+    const text = `[레슨 메모 - ${student?.name ?? "학생"}]\n\n${params?.memo || ""}`;
+    navigator.clipboard.writeText(text);
+    alert("카카오톡 메시지가 복사됐어요!");
+  };
 
   return (
     <div className="screen">
-      <BackButton label="셀프 진단" onClick={() => go("selfHub")} />
-      <StepIndicator total={3} current={2} />
-      <p className="eyebrow">Diagnosis Result</p>
-      <h2 className="screen-title"><strong>진단 결과</strong></h2>
+      <BackButton label="레슨 메모" onClick={() => go("checklist", { student })} />
+      <StepIndicator total={2} current={1} />
+      <p className="eyebrow">Lesson Result</p>
+      <h2 className="screen-title">{student?.name || "학생"}<br /><strong>레슨 기록</strong></h2>
 
-      {loading && (
-        <div className="loading-card">
-          <p className="loading-text">AI 진단 중...</p>
-          <p className="loading-sub">보컬 트레이너가 분석하고 있어요</p>
-        </div>
-      )}
+      {/* 메모 내용 */}
+      <div className="result-card">
+        <p className="card-label">오늘 레슨 메모</p>
+        <p className="result-body" style={{marginTop:8, whiteSpace:"pre-line"}}>{params?.memo}</p>
+      </div>
 
-      {error && (
-        <div className="result-card">
-          <p className="error-text">{error}</p>
-          <button className="btn-secondary" style={{marginTop:12, width:"100%"}}
-            onClick={() => diagnose({ symptom: params?.symptom, range: params?.range })}>
-            다시 시도
-          </button>
-        </div>
-      )}
+      {/* AI 진단 안내 */}
+      <div style={{
+        background:"var(--accent-dim)",
+        border:"0.5px solid var(--accent-mid)",
+        borderRadius:16,
+        padding:"18px 18px",
+        marginBottom:10,
+        textAlign:"center"
+      }}>
+        <p style={{fontSize:14, fontWeight:600, color:"var(--accent)", marginBottom:6}}>✨ AI 진단</p>
+        <p style={{fontSize:13, color:"var(--text2)", lineHeight:1.7}}>
+          구독하면 AI가 메모를 분석해서{"\n"}레슨 방향과 연습 과제를 제안해줘요
+        </p>
+        <button style={{
+          marginTop:12,
+          background:"var(--accent)",
+          color:"#0e0e12",
+          border:"none",
+          borderRadius:10,
+          padding:"10px 20px",
+          fontSize:13,
+          fontWeight:600,
+          cursor:"pointer",
+          fontFamily:"inherit"
+        }}>
+          구독하기 (준비 중)
+        </button>
+      </div>
 
-      {result && !loading && (
-        <>
-          <div className="result-main">
-            <p className="card-label">주요 문제</p>
-            <p className="card-value">{result.issues ?? result.raw}</p>
-          </div>
+      {saving && <p style={{fontSize:12, color:"var(--text2)", textAlign:"center"}}>기록 저장 중...</p>}
+      {saved && <p style={{fontSize:12, color:"var(--accent)", textAlign:"center"}}>✓ 레슨 기록 저장됨</p>}
 
-          {result.cause && (
-            <div className="result-card">
-              <p className="card-label">원인</p>
-              <p className="result-body">{result.cause}</p>
-            </div>
-          )}
+      <div className="btn-row" style={{marginBottom:8}}>
+        <button className="btn-secondary" onClick={copyKakao}>📋 카톡 복사</button>
+        <button className="btn-secondary" onClick={() => go("library")}>연습법 보기</button>
+      </div>
+      <button className="btn-primary" onClick={() => go("studentSelect")}>완료</button>
 
-          <div className="result-card">
-            <p className="card-label">해결 방안</p>
-            <div className="solution-list">
-              {result.solutions?.map((s, i) => (
-                <div key={i} className="solution-item">
-                  <span className="sol-num">0{i+1}</span>
-                  <span className="sol-text">{s}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {result.exercise && (
-            <div className="highlight-card">
-              <p className="card-label">오늘 바로 할 연습</p>
-              <p className="card-value">{result.exercise}</p>
-            </div>
-          )}
-
-          {saved && <p style={{fontSize:12, color:"var(--accent)", textAlign:"center"}}>✓ 진단 기록 저장됨</p>}
-
-          <div className="btn-row">
-            <button className="btn-secondary" onClick={() => go("library")}>연습법 보기</button>
-            <button className="btn-primary" onClick={() => go("home")}>홈으로</button>
-          </div>
-        </>
-      )}
       <NavBar go={go} active="home" />
     </div>
   );
