@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import {
-  collection, addDoc, doc, updateDoc,
+  collection, addDoc, doc, updateDoc, deleteDoc,
   query, orderBy, serverTimestamp, getDoc,
   onSnapshot,
 } from "firebase/firestore";
@@ -137,4 +137,36 @@ export async function addHomework(trainerId, studentId, content) {
 export async function addFeedback(trainerId, studentId, journalId, feedback) {
   const ref = doc(db, "trainers", trainerId, "students", studentId, "journals", journalId);
   await updateDoc(ref, { trainerFeedback: feedback, feedbackAt: serverTimestamp() });
+}
+
+// ── 레슨 일정 ──
+export function useLessons() {
+  const [lessons, setLessons] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const ref = collection(db, "trainers", getTrainerId(), "lessons");
+    const q = query(ref, orderBy("date", "asc"));
+    const unsub = onSnapshot(q, (snap) => {
+      setLessons(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+      setLoading(false);
+    }, (e) => { console.error(e); setLoading(false); });
+    return unsub;
+  }, []);
+
+  const addLesson = async ({ studentId, studentName, date, time, memo }) => {
+    const ref = collection(db, "trainers", getTrainerId(), "lessons");
+    await addDoc(ref, {
+      studentId, studentName, date, time,
+      memo: memo || "",
+      createdAt: serverTimestamp(),
+    });
+  };
+
+  const deleteLesson = async (lessonId) => {
+    const ref = doc(db, "trainers", getTrainerId(), "lessons", lessonId);
+    await deleteDoc(ref);
+  };
+
+  return { lessons, loading, addLesson, deleteLesson };
 }
