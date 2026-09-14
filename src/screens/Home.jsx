@@ -1,8 +1,8 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLessons, useStudents } from "../hooks/useFirestore";
 
-const NOW = new Date();
-const TODAY = NOW.getDate();
+const getNow = () => new Date();
+const TODAY = getNow().getDate();
 const STUDENT_COLORS = ["#c9a96e","#a78bda","#5ec4a0","#e07b6a","#6ab0e0","#e0a06a"];
 
 function getHeatLevel(count) {
@@ -95,14 +95,31 @@ export default function Home({ go, theme, toggleTheme }) {
   const { students } = useStudents();
 
   // 현재 보고 있는 연/월 상태
-  const [viewYear, setViewYear] = useState(NOW.getFullYear());
-  const [viewMonth, setViewMonth] = useState(NOW.getMonth() + 1);
-  const [selectedDay, setSelectedDay] = useState(TODAY);
+  const [today, setToday] = useState(getNow());
+  const [viewYear, setViewYear] = useState(getNow().getFullYear());
+  const [viewMonth, setViewMonth] = useState(getNow().getMonth() + 1);
+  const [selectedDay, setSelectedDay] = useState(getNow().getDate());
   const [showModal, setShowModal] = useState(false);
 
   const daysInMonth = new Date(viewYear, viewMonth, 0).getDate();
   const firstDay = new Date(viewYear, viewMonth - 1, 1).getDay();
-  const isCurrentMonth = viewYear === NOW.getFullYear() && viewMonth === NOW.getMonth() + 1;
+  const isCurrentMonth = viewYear === today.getFullYear() && viewMonth === today.getMonth() + 1;
+
+  // 포커스 감지 — 앱 다시 열 때 날짜 갱신
+  useEffect(() => {
+    const handleFocus = () => {
+      const now = getNow();
+      setToday(now);
+      if (isCurrentMonth) setSelectedDay(now.getDate());
+    };
+    window.addEventListener("focus", handleFocus);
+    document.addEventListener("visibilitychange", () => {
+      if (!document.hidden) handleFocus();
+    });
+    return () => {
+      window.removeEventListener("focus", handleFocus);
+    };
+  }, []);
 
   const prevMonth = () => {
     if (viewMonth === 1) { setViewYear(y => y - 1); setViewMonth(12); }
@@ -169,7 +186,7 @@ export default function Home({ go, theme, toggleTheme }) {
           {Array.from({length: daysInMonth}, (_, i) => i + 1).map(day => {
             const count = (lessonsByDay[day] || []).length;
             const level = getHeatLevel(count);
-            const isToday = isCurrentMonth && day === TODAY;
+            const isToday = isCurrentMonth && day === today.getDate();
             return (
               <div
                 key={day}
