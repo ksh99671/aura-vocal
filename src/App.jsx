@@ -13,7 +13,8 @@ import Checklist from "./screens/lesson/Checklist";
 import LessonResult from "./screens/lesson/LessonResult";
 import Library from "./screens/shared/Library";
 import History from "./screens/shared/History";
-import StudentApp from "./screens/student/StudentApp";
+import StudentsList from "./screens/students/StudentsList";
+import StudentDetail from "./screens/students/StudentDetail";
 
 const SCREENS = {
   home: Home, settings: Settings,
@@ -22,6 +23,7 @@ const SCREENS = {
   lessonHub: LessonHub, studentSelect: StudentSelect,
   checklist: Checklist, lessonResult: LessonResult,
   library: Library, history: History,
+  studentsList: StudentsList, studentDetail: StudentDetail,
 };
 
 export default function App() {
@@ -39,8 +41,6 @@ export default function App() {
   const go = (screen, params = {}) => setNav({ screen, params });
   const toggleTheme = () => setTheme(t => t === "dark" ? "light" : "dark");
 
-  if (isStudentPage) return <StudentApp />;
-
   if (loading) {
     return (
       <div style={{minHeight:"100vh", background:"var(--bg)", display:"flex", alignItems:"center", justifyContent:"center"}}>
@@ -51,7 +51,9 @@ export default function App() {
 
   if (!user) return <Login onSignIn={signIn} />;
 
-  const Screen = SCREENS[screen] ?? Home;
+  // Students 탭은 studentsList로
+  const resolvedScreen = screen === "studentSelect" && params?.fromTab ? "studentsList" : screen;
+  const Screen = SCREENS[resolvedScreen] ?? Home;
 
   return (
     <div className="app-root">

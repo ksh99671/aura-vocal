@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import {
-  collection, addDoc, doc, updateDoc, deleteDoc,
+  collection, addDoc, doc, updateDoc, deleteDoc, setDoc,
   query, orderBy, serverTimestamp, getDoc,
   onSnapshot,
 } from "firebase/firestore";
@@ -169,4 +169,43 @@ export function useLessons() {
   };
 
   return { lessons, loading, addLesson, deleteLesson };
+}
+
+// ── 카테고리 관련 ──
+export function useCategories() {
+  const [categories, setCategories] = useState([
+    { id: "exam", name: "입시", color: "#a78bda" },
+    { id: "hobby", name: "취미", color: "#5ec4a0" },
+  ]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const ref = doc(db, "trainers", getTrainerId(), "settings", "categories");
+    const unsub = onSnapshot(ref, (snap) => {
+      if (snap.exists() && snap.data().list) {
+        setCategories(snap.data().list);
+      }
+      setLoading(false);
+    }, () => setLoading(false));
+    return unsub;
+  }, []);
+
+  const saveCategories = async (list) => {
+    const ref = doc(db, "trainers", getTrainerId(), "settings", "categories");
+    await setDoc(ref, { list });
+    setCategories(list);
+  };
+
+  const addCategory = async (name, color) => {
+    const newCat = { id: `cat_${Date.now()}`, name, color };
+    const newList = [...categories, newCat];
+    await saveCategories(newList);
+  };
+
+  const deleteCategory = async (id) => {
+    const newList = categories.filter(c => c.id !== id);
+    await saveCategories(newList);
+  };
+
+  return { categories, loading, addCategory, deleteCategory };
 }

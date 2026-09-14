@@ -2,7 +2,7 @@ export default function NavBar({ go, active = "home" }) {
   const items = [
     { key: "home", icon: "⊙", label: null },
     { key: "history", icon: "◷", label: "History" },
-    { key: "studentSelect", icon: "👥", label: "Students" },
+    { key: "studentsList", icon: "👥", label: "Students" },
     { key: "library", icon: "📓", label: "Vault" },
     { key: "settings", icon: "◈", label: "Settings" },
   ];
@@ -11,11 +11,11 @@ export default function NavBar({ go, active = "home" }) {
       {items.map(item => (
         <button
           key={item.key}
-          className={`nav-item ${active === item.key ? "active" : ""}`}
+          className={`nav-item ${active === item.key || (active === "studentSelect" && item.key === "studentsList") ? "active" : ""}`}
           onClick={() => go(item.key)}
         >
           <span className="nav-icon">{item.icon}</span>
-          {active === item.key && !item.label
+          {(active === item.key || (active === "studentSelect" && item.key === "studentsList")) && !item.label
             ? <div className="nav-pip" />
             : <span className="nav-label">{item.label || ""}</span>}
         </button>
