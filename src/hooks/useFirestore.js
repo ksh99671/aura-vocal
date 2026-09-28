@@ -58,7 +58,12 @@ export function useLessonLogs(studentId) {
     await updateDoc(ref, data);
   };
 
-  return { logs, loading, addLog, updateLog };
+  const deleteLog = async (logId) => {
+    const ref = doc(db, "trainers", getTrainerId(), "students", studentId, "lessonLogs", logId);
+    await deleteDoc(ref);
+  };
+
+  return { logs, loading, addLog, updateLog, deleteLog };
 }
 
 // ── 셀프 진단 기록 ──
