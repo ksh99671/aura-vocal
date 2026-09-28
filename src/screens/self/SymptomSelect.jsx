@@ -44,7 +44,7 @@ export default function SymptomSelect({ go }) {
       </div>
 
       <button className="btn-primary" disabled={!symptom || !range} onClick={() => go("selfResult", { symptom, range })}>
-        진단 요청 →
+        진단 완료
       </button>
       <NavBar go={go} active="home" />
     </div>

@@ -251,7 +251,7 @@ export default function Home({ go, theme, toggleTheme }) {
       <nav className="nav-bar">
         <button className="nav-item active"><span className="nav-icon">⊙</span><div className="nav-pip" /></button>
         <button className="nav-item" onClick={() => go("history")}><span className="nav-icon">◷</span><span className="nav-label">History</span></button>
-        <button className="nav-item" onClick={() => go("studentSelect")}><span className="nav-icon">👥</span><span className="nav-label">Students</span></button>
+        <button className="nav-item" onClick={() => go("studentsList")}><span className="nav-icon">👥</span><span className="nav-label">Students</span></button>
         <button className="nav-item" onClick={() => go("library")}><span className="nav-icon">📓</span><span className="nav-label">Vault</span></button>
         <button className="nav-item" onClick={() => go("settings")}><span className="nav-icon">◈</span><span className="nav-label">Settings</span></button>
       </nav>
