@@ -15,7 +15,7 @@ function getMonthDiff(startDate) {
 
 export default function StudentDetail({ go, params }) {
   const student = params?.student;
-  const { logs } = useLessonLogs(student?.id);
+  const { logs, updateLog, deleteLog } = useLessonLogs(student?.id);
   const { categories } = useCategories();
 
   const [memo, setMemo] = useState(student?.memo || "");
@@ -27,6 +27,10 @@ export default function StudentDetail({ go, params }) {
   const [startDate, setStartDate] = useState(student?.startDate || "");
   const [baseCount, setBaseCount] = useState(student?.baseCount || 0);
   const [savingInfo, setSavingInfo] = useState(false);
+
+  const [editingLogId, setEditingLogId] = useState(null);
+  const [logMemo, setLogMemo] = useState("");
+  const [savingLog, setSavingLog] = useState(false);
 
   const cat = categories.find(c => c.id === category);
   const totalLessons = logs.length + Number(baseCount);
@@ -52,6 +56,23 @@ export default function StudentDetail({ go, params }) {
     if (!confirm(`${student.name} 학생을 삭제할까요?`)) return;
     await deleteDoc(getRef());
     go("studentsList");
+  };
+
+  const startEditLog = (log) => {
+    setEditingLogId(log.id);
+    setLogMemo(log.memo || "");
+  };
+
+  const saveLog = async () => {
+    setSavingLog(true);
+    await updateLog(editingLogId, { memo: logMemo });
+    setSavingLog(false);
+    setEditingLogId(null);
+  };
+
+  const removeLog = async (logId) => {
+    if (!confirm("이 레슨 기록을 삭제할까요?")) return;
+    await deleteLog(logId);
   };
 
   if (!student) return null;
@@ -193,22 +214,56 @@ export default function StudentDetail({ go, params }) {
         </div>
       ) : (
         <div className="result-card">
-          {logs.slice(0, 5).map((log, i) => (
-            <div key={log.id || i} style={{
-              display:"flex", alignItems:"center", gap:10,
-              padding:"9px 0", borderBottom: i < Math.min(logs.length, 5) - 1 ? "0.5px solid var(--border)" : "none",
-            }}>
-              <span style={{fontSize:10, color:"var(--text3)", minWidth:32}}>
-                {log.createdAt?.toDate?.()?.toLocaleDateString("ko-KR", {month:"numeric", day:"numeric"}) || "-"}
-              </span>
-              <p style={{flex:1, fontSize:12, fontWeight:500, color:"var(--text1)", lineHeight:1.5}}>
-                {log.memo ? log.memo.slice(0, 30) : "레슨 기록"}
-              </p>
-              <span style={{fontSize:10, color:"var(--accent)", flexShrink:0, fontWeight:500}}>
-                {Number(baseCount) + i + 1}회
-              </span>
-            </div>
-          ))}
+          {logs.slice(0, 5).map((log, i) => {
+            const lessonNo = Number(baseCount) + logs.length - i;
+            const isEditing = editingLogId === log.id;
+            return (
+              <div key={log.id || i} style={{
+                padding:"9px 0", borderBottom: i < Math.min(logs.length, 5) - 1 ? "0.5px solid var(--border)" : "none",
+              }}>
+                {isEditing ? (
+                  <>
+                    <div style={{display:"flex", alignItems:"center", gap:8, marginBottom:6}}>
+                      <span style={{fontSize:10, color:"var(--text3)"}}>
+                        {log.date?.toDate?.()?.toLocaleDateString("ko-KR", {month:"numeric", day:"numeric"}) || "-"}
+                      </span>
+                      <span style={{fontSize:10, color:"var(--accent)", fontWeight:500}}>{lessonNo}회</span>
+                    </div>
+                    <textarea value={logMemo} onChange={e => setLogMemo(e.target.value)} rows={3} style={{
+                      width:"100%", background:"var(--bg3)", border:"0.5px solid var(--border2)",
+                      borderRadius:10, padding:"10px 12px", outline:"none",
+                      fontSize:12, color:"var(--text1)", fontFamily:"inherit",
+                      resize:"none", lineHeight:1.6,
+                    }} />
+                    <div className="btn-row" style={{marginTop:8}}>
+                      <button className="btn-secondary" onClick={() => setEditingLogId(null)}>취소</button>
+                      <button className="btn-primary" disabled={savingLog} onClick={saveLog}>
+                        {savingLog ? "저장 중..." : "저장"}
+                      </button>
+                    </div>
+                  </>
+                ) : (
+                  <div style={{display:"flex", alignItems:"center", gap:10}}>
+                    <span style={{fontSize:10, color:"var(--text3)", minWidth:32}}>
+                      {log.date?.toDate?.()?.toLocaleDateString("ko-KR", {month:"numeric", day:"numeric"}) || "-"}
+                    </span>
+                    <p style={{flex:1, fontSize:12, fontWeight:500, color:"var(--text1)", lineHeight:1.5}}>
+                      {log.memo ? (log.memo.length > 30 ? log.memo.slice(0, 30) + "..." : log.memo) : "레슨 기록"}
+                    </p>
+                    <span style={{fontSize:10, color:"var(--accent)", flexShrink:0, fontWeight:500}}>{lessonNo}회</span>
+                    <button onClick={() => startEditLog(log)} style={{
+                      background:"none", border:"none", cursor:"pointer",
+                      fontSize:11, color:"var(--text3)", padding:"0 2px", fontFamily:"inherit",
+                    }}>수정</button>
+                    <button onClick={() => removeLog(log.id)} style={{
+                      background:"none", border:"none", cursor:"pointer",
+                      fontSize:13, color:"rgba(224,74,74,0.5)", padding:"0 2px",
+                    }}>✕</button>
+                  </div>
+                )}
+              </div>
+            );
+          })}
           {logs.length > 5 && (
             <p style={{fontSize:11, color:"var(--text3)", textAlign:"center", paddingTop:8}}>
               + {logs.length - 5}회 더 있어요
