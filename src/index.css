@@ -332,3 +332,14 @@ button { font-family: inherit; cursor: pointer; }
 .nav-item.active .nav-icon { opacity: 1; }
 .nav-item.active .nav-label { color: var(--accent); }
 .nav-pip { width: 3px; height: 3px; border-radius: 50%; background: var(--accent); margin: 0 auto; }
+
+/* AURA-NAV-FIX: 탭바 + 기본 컨트롤 가시성 고정 */
+:root { color-scheme: dark; }
+[data-theme="light"] { color-scheme: light; }
+
+.nav-bar { background: var(--nav-bg, var(--bg)); }
+.nav-bar .nav-item { color: var(--text1); }
+.nav-bar .nav-icon { color: var(--text1); opacity: .7; }
+.nav-bar .nav-label { color: var(--text1); opacity: .7; }
+.nav-bar .nav-item.active .nav-icon { opacity: 1; }
+.nav-bar .nav-item.active .nav-label { color: var(--accent); opacity: 1; }
