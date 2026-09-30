@@ -102,3 +102,11 @@ export async function setNoteVisibility(id, visibility, sharedWith) {
     sharedWith: visibility === "some" ? sharedWith : [],
   });
 }
+
+// 제목/내용만 바로 저장 (수정 화면 없이). 고친 노트는 목록 맨 앞으로 올라온다.
+export async function updateNoteText(id, { title, body }) {
+  const fields = { updatedAt: serverTimestamp() };
+  if (title !== undefined) fields.title = title;
+  if (body !== undefined) fields.body = body;
+  await updateDoc(noteDoc(id), fields);
+}

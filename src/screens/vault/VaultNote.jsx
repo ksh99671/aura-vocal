@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import BackButton from "../../components/BackButton";
 import NavBar from "../../components/NavBar";
-import { useVaultNotes, useVaultCategories, deleteNote, setNoteVisibility } from "../../hooks/useVault";
+import { useVaultNotes, useVaultCategories, deleteNote, setNoteVisibility, updateNoteText } from "../../hooks/useVault";
 import { useStudents } from "../../hooks/useFirestore";
 import { getPhoto } from "../../lib/photoStore";
 
@@ -25,6 +25,8 @@ export default function VaultNote({ go, params }) {
   const [deleting, setDeleting] = useState(false);
   const [savedFlash, setSavedFlash] = useState(false);
   const [visError, setVisError] = useState("");
+  const [editField, setEditField] = useState(null); // "title" | "body" | null
+  const [draft, setDraft] = useState("");
 
   const cur = photos[Math.min(idx, Math.max(photos.length - 1, 0))];
 
@@ -54,13 +56,39 @@ export default function VaultNote({ go, params }) {
   const heroSrc = cur ? full[cur.id] || cur.thumb : null;
   const dateStr = note.updatedAt?.toDate?.()?.toLocaleDateString("ko-KR", { year: "numeric", month: "long", day: "numeric" }) || "";
 
+  const flash = () => {
+    setSavedFlash(true);
+    setTimeout(() => setSavedFlash(false), 1500);
+  };
+
+  // 제목/내용: 글자를 누르면 바로 고칠 수 있고, 바깥을 누르면 저장된다
+  const startEdit = (field) => {
+    setDraft(field === "title" ? note.title || "" : note.body || "");
+    setEditField(field);
+  };
+  const commit = async () => {
+    const field = editField;
+    if (!field) return;
+    setEditField(null);
+    const cur = field === "title" ? note.title || "" : note.body || "";
+    const next = field === "title" ? draft.trim() : draft;
+    if (field === "title" && !next) return; // 빈 제목은 저장하지 않고 원래대로
+    if (next === cur) return;
+    try {
+      await updateNoteText(note.id, { [field]: next });
+      flash();
+    } catch (err) {
+      console.error(err);
+      alert("저장하지 못했어요: " + (err.code || err.message));
+    }
+  };
+
   // 공개 범위는 누르는 즉시 저장된다
   const setVis = async (visibility, sharedWith) => {
     setVisError("");
     try {
       await setNoteVisibility(note.id, visibility, sharedWith);
-      setSavedFlash(true);
-      setTimeout(() => setSavedFlash(false), 1500);
+      flash();
     } catch (err) {
       console.error(err);
       setVisError("저장하지 못했어요: " + (err.code || err.message));
@@ -102,11 +130,29 @@ export default function VaultNote({ go, params }) {
         <button
           onClick={() => go("vaultEdit", { noteId: note.id })}
           style={{ marginLeft: "auto", fontSize: 12, color: "var(--accent)", background: "none", border: "none", cursor: "pointer", fontFamily: "inherit" }}
-        >수정</button>
+        >사진·카테고리</button>
       </div>
-      <h2 style={{ fontSize: 22, fontWeight: 600, color: "var(--text1)", letterSpacing: "-.01em", lineHeight: 1.3, marginBottom: 14 }}>
-        {note.title}
-      </h2>
+      {editField === "title" ? (
+        <input
+          autoFocus
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          onBlur={commit}
+          onKeyDown={(e) => { if (e.key === "Enter") e.target.blur(); }}
+          style={{
+            width: "100%", fontSize: 22, fontWeight: 600, color: "var(--text1)", letterSpacing: "-.01em",
+            background: "var(--bg3)", border: "0.5px solid var(--accent-mid)", borderRadius: 12,
+            padding: "8px 12px", fontFamily: "inherit", outline: "none", marginBottom: 14,
+          }}
+        />
+      ) : (
+        <h2
+          onClick={() => startEdit("title")}
+          style={{ fontSize: 22, fontWeight: 600, color: "var(--text1)", letterSpacing: "-.01em", lineHeight: 1.3, marginBottom: 14, cursor: "text" }}
+        >
+          {note.title}
+        </h2>
+      )}
 
       {/* 사진 */}
       {photos.length > 0 && (
@@ -143,18 +189,35 @@ export default function VaultNote({ go, params }) {
       )}
 
       {/* 내용 */}
-      <p style={{
-        fontSize: 14, lineHeight: 1.9, whiteSpace: "pre-wrap", margin: "14px 0 16px",
-        color: note.body ? "var(--text1)" : "var(--text3)",
-      }}>
-        {note.body || "내용이 없어요. 수정을 눌러 작성해보세요."}
-      </p>
+      {editField === "body" ? (
+        <textarea
+          autoFocus
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          onBlur={commit}
+          rows={Math.max(6, draft.split("\n").length + 1)}
+          style={{
+            width: "100%", fontSize: 14, lineHeight: 1.9, color: "var(--text1)",
+            background: "var(--bg3)", border: "0.5px solid var(--accent-mid)", borderRadius: 12,
+            padding: "12px 14px", fontFamily: "inherit", outline: "none", resize: "vertical", margin: "14px 0 16px",
+          }}
+        />
+      ) : (
+        <p
+          onClick={() => startEdit("body")}
+          style={{
+            fontSize: 14, lineHeight: 1.9, whiteSpace: "pre-wrap", margin: "14px 0 16px", cursor: "text",
+            color: note.body ? "var(--text1)" : "var(--text3)",
+          }}
+        >
+          {note.body || "눌러서 내용을 작성해보세요"}
+        </p>
+      )}
 
       {/* 공개 범위 — 누르면 바로 저장 */}
       <div className="result-card" style={{ marginBottom: 12 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
           <p className="card-label" style={{ marginBottom: 0 }}>공개 범위</p>
-          <span style={{ fontSize: 11, color: "var(--accent)", opacity: savedFlash ? 1 : 0, transition: "opacity .25s" }}>✓ 저장됨</span>
         </div>
 
         <div style={{ display: "flex", background: "var(--bg3)", borderRadius: 12, padding: 3, gap: 3 }}>
@@ -221,6 +284,14 @@ export default function VaultNote({ go, params }) {
           borderRadius: 12, fontSize: 12, cursor: "pointer", fontFamily: "inherit",
         }}
       >{deleting ? "삭제 중..." : "노트 삭제"}</button>
+
+      {savedFlash && (
+        <div style={{
+          position: "fixed", bottom: 92, left: "50%", transform: "translateX(-50%)", zIndex: 250,
+          background: "var(--text1)", color: "var(--bg)", fontSize: 12, fontWeight: 500,
+          padding: "8px 15px", borderRadius: 16, boxShadow: "0 2px 10px rgba(0,0,0,0.3)",
+        }}>✓ 저장됨</div>
+      )}
 
       {/* 사진 크게 보기 */}
       {lightbox && heroSrc && (
