@@ -15,6 +15,7 @@ import Library from "./screens/shared/Library";
 import History from "./screens/shared/History";
 import StudentsList from "./screens/students/StudentsList";
 import StudentDetail from "./screens/students/StudentDetail";
+import LessonDetail from "./screens/students/LessonDetail";
 
 const SCREENS = {
   home: Home, settings: Settings,
@@ -23,7 +24,7 @@ const SCREENS = {
   lessonHub: LessonHub, studentSelect: StudentSelect,
   checklist: Checklist, lessonResult: LessonResult,
   library: Library, history: History,
-  studentsList: StudentsList, studentDetail: StudentDetail,
+  studentsList: StudentsList, studentDetail: StudentDetail, lessonDetail: LessonDetail,
 };
 
 export default function App() {
