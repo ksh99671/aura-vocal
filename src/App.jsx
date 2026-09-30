@@ -12,6 +12,9 @@ import StudentSelect from "./screens/lesson/StudentSelect";
 import Checklist from "./screens/lesson/Checklist";
 import LessonResult from "./screens/lesson/LessonResult";
 import Library from "./screens/shared/Library";
+import VaultList from "./screens/vault/VaultList";
+import VaultNote from "./screens/vault/VaultNote";
+import VaultEdit from "./screens/vault/VaultEdit";
 import History from "./screens/shared/History";
 import StudentsList from "./screens/students/StudentsList";
 import StudentDetail from "./screens/students/StudentDetail";
@@ -23,7 +26,7 @@ const SCREENS = {
   symptomSelect: SymptomSelect, selfResult: SelfResult,
   lessonHub: LessonHub, studentSelect: StudentSelect,
   checklist: Checklist, lessonResult: LessonResult,
-  library: Library, history: History,
+  library: VaultList, vaultNote: VaultNote, vaultEdit: VaultEdit, history: History,
   studentsList: StudentsList, studentDetail: StudentDetail, lessonDetail: LessonDetail,
 };
 
