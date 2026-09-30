@@ -21,18 +21,39 @@ export default function LessonDetail({ go, params }) {
   const student = params?.student;
   const log = params?.log;
   const lessonNo = params?.lessonNo;
-  const { updateLog, deleteLog } = useLessonLogs(student?.id);
+  const { logs, updateLog, deleteLog, moveLog } = useLessonLogs(student?.id);
 
   const [memo, setMemo] = useState(log?.memo || "");
   const [dateVal, setDateVal] = useState(toInput(log?.date));
+  const [noVal, setNoVal] = useState(String(lessonNo ?? ""));
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
 
   if (!student || !log) return null;
 
+  const base = Number(student.baseCount || 0);
+  const maxNo = base + logs.length;
+  const no = Number(noVal);
+  const noValid = noVal !== "" && Number.isInteger(no) && no > base && no <= maxNo;
+  const range = (a, b) => (a === b ? `${a}회차` : `${a}~${b}회차`);
+  let noHint = "";
+  if (noVal !== "" && logs.length > 0) {
+    if (!noValid) noHint = `${base + 1}회 ~ ${maxNo}회 사이로 입력해주세요`;
+    else if (no < lessonNo) noHint = `${range(no, lessonNo - 1)}였던 기록이 한 칸씩 뒤로 밀려요`;
+    else if (no > lessonNo) noHint = `${range(lessonNo + 1, no)}였던 기록이 한 칸씩 앞으로 당겨져요`;
+  }
+
   const save = async () => {
+    if (!noValid) {
+      alert(`${base + 1}회 ~ ${maxNo}회 사이로 입력해주세요`);
+      return;
+    }
     setSaving(true);
-    await updateLog(log.id, { memo, date: fromInput(dateVal) });
+    const newDate = fromInput(dateVal);
+    await updateLog(log.id, { memo, date: newDate });
+    if (no !== lessonNo) await moveLog(log.id, no - base);
+    // 화면 정보도 최신으로 (다시 수정/취소할 때 옛 값으로 돌아가지 않게)
+    go("lessonDetail", { student, log: { ...log, memo, date: newDate }, lessonNo: no });
     setSaving(false);
     setEditing(false);
   };
@@ -40,6 +61,7 @@ export default function LessonDetail({ go, params }) {
   const cancel = () => {
     setMemo(log.memo || "");
     setDateVal(toInput(log.date));
+    setNoVal(String(lessonNo));
     setEditing(false);
   };
 
@@ -74,6 +96,17 @@ export default function LessonDetail({ go, params }) {
 
         {editing ? (
           <>
+            <p className="card-label">회차</p>
+            <div style={{display:"flex", alignItems:"center", gap:8, marginBottom:6}}>
+              <input type="number" value={noVal} min={base + 1} max={maxNo} onChange={e => setNoVal(e.target.value)} style={{
+                width:90, padding:"10px 12px", borderRadius:10, textAlign:"center",
+                background:"var(--bg3)", border:"0.5px solid var(--border2)",
+                color:"var(--text1)", fontSize:14, fontFamily:"inherit", outline:"none",
+              }} />
+              <span style={{fontSize:13, color:"var(--text2)"}}>회차</span>
+            </div>
+            <p style={{fontSize:11, color:"var(--text3)", marginBottom:14, lineHeight:1.6, minHeight:16}}>{noHint}</p>
+
             <p className="card-label">날짜</p>
             <div style={{display:"flex", gap:8, alignItems:"center", marginBottom:14}}>
               <input type="date" value={dateVal} onChange={e => setDateVal(e.target.value)} style={{
