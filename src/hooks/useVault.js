@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import {
-  collection, doc, onSnapshot, setDoc, deleteDoc, serverTimestamp,
+  collection, doc, onSnapshot, setDoc, updateDoc, deleteDoc, serverTimestamp,
 } from "firebase/firestore";
 import { db, auth } from "../firebase";
 import { putPhoto, removePhoto } from "../lib/photoStore";
@@ -92,4 +92,13 @@ export async function saveNote(id, fields, { isNew, pending = [], removedIds = [
 export async function deleteNote(note) {
   for (const p of note.photos || []) await removePhoto(note.id, p.id);
   await deleteDoc(noteDoc(note.id));
+}
+
+// 공개 범위만 바로 저장 (수정 화면 없이). 목록 순서(updatedAt)는 바꾸지 않는다.
+// sharedWith는 visibility가 "some"일 때만 의미가 있어서, 다른 값이면 비운다.
+export async function setNoteVisibility(id, visibility, sharedWith) {
+  await updateDoc(noteDoc(id), {
+    visibility,
+    sharedWith: visibility === "some" ? sharedWith : [],
+  });
 }

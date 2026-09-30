@@ -1,9 +1,15 @@
 import { useState, useEffect } from "react";
 import BackButton from "../../components/BackButton";
 import NavBar from "../../components/NavBar";
-import { useVaultNotes, useVaultCategories, deleteNote } from "../../hooks/useVault";
+import { useVaultNotes, useVaultCategories, deleteNote, setNoteVisibility } from "../../hooks/useVault";
 import { useStudents } from "../../hooks/useFirestore";
 import { getPhoto } from "../../lib/photoStore";
+
+const VIS = [
+  { key: "private", label: "비공개" },
+  { key: "all", label: "전체 학생" },
+  { key: "some", label: "특정 학생" },
+];
 
 export default function VaultNote({ go, params }) {
   const noteId = params?.noteId;
@@ -17,6 +23,8 @@ export default function VaultNote({ go, params }) {
   const [full, setFull] = useState({}); // { 사진id: 원본 dataURL }
   const [lightbox, setLightbox] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [savedFlash, setSavedFlash] = useState(false);
+  const [visError, setVisError] = useState("");
 
   const cur = photos[Math.min(idx, Math.max(photos.length - 1, 0))];
 
@@ -46,12 +54,26 @@ export default function VaultNote({ go, params }) {
   const heroSrc = cur ? full[cur.id] || cur.thumb : null;
   const dateStr = note.updatedAt?.toDate?.()?.toLocaleDateString("ko-KR", { year: "numeric", month: "long", day: "numeric" }) || "";
 
-  let visText = "비공개";
-  if (note.visibility === "all") visText = "전체 학생";
-  if (note.visibility === "some") {
-    const names = (note.sharedWith || []).map((id) => students.find((s) => s.id === id)?.name).filter(Boolean);
-    visText = names.length ? names.join(", ") : "특정 학생 (선택된 학생 없음)";
-  }
+  // 공개 범위는 누르는 즉시 저장된다
+  const setVis = async (visibility, sharedWith) => {
+    setVisError("");
+    try {
+      await setNoteVisibility(note.id, visibility, sharedWith);
+      setSavedFlash(true);
+      setTimeout(() => setSavedFlash(false), 1500);
+    } catch (err) {
+      console.error(err);
+      setVisError("저장하지 못했어요: " + (err.code || err.message));
+    }
+  };
+  const pickVis = (key) => {
+    if (key !== note.visibility) setVis(key, note.sharedWith || []);
+  };
+  const toggleStudent = (id) => {
+    const cur = note.sharedWith || [];
+    setVis("some", cur.includes(id) ? cur.filter((x) => x !== id) : [...cur, id]);
+  };
+  const picked = note.sharedWith || [];
 
   const remove = async () => {
     if (!confirm("이 노트를 삭제할까요? 사진도 함께 삭제돼요.")) return;
@@ -128,10 +150,66 @@ export default function VaultNote({ go, params }) {
         {note.body || "내용이 없어요. 수정을 눌러 작성해보세요."}
       </p>
 
-      {/* 공개 범위 */}
+      {/* 공개 범위 — 누르면 바로 저장 */}
       <div className="result-card" style={{ marginBottom: 12 }}>
-        <p className="card-label" style={{ marginBottom: 6 }}>공개 범위</p>
-        <p style={{ fontSize: 13, color: note.visibility === "private" ? "var(--text2)" : "var(--accent)", fontWeight: 500 }}>{visText}</p>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+          <p className="card-label" style={{ marginBottom: 0 }}>공개 범위</p>
+          <span style={{ fontSize: 11, color: "var(--accent)", opacity: savedFlash ? 1 : 0, transition: "opacity .25s" }}>✓ 저장됨</span>
+        </div>
+
+        <div style={{ display: "flex", background: "var(--bg3)", borderRadius: 12, padding: 3, gap: 3 }}>
+          {VIS.map((v) => (
+            <button
+              key={v.key}
+              onClick={() => pickVis(v.key)}
+              style={{
+                flex: 1, padding: "9px 0", borderRadius: 10, fontSize: 12, fontFamily: "inherit", cursor: "pointer",
+                border: "none",
+                background: note.visibility === v.key ? "var(--accent-dim)" : "transparent",
+                color: note.visibility === v.key ? "var(--accent)" : "var(--text2)",
+                fontWeight: note.visibility === v.key ? 600 : 400,
+              }}
+            >{v.label}</button>
+          ))}
+        </div>
+
+        {note.visibility === "some" && (
+          <>
+            <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 12 }}>
+              {students.length === 0 && (
+                <p style={{ fontSize: 12, color: "var(--text3)" }}>학생을 먼저 추가해주세요</p>
+              )}
+              {students.map((s) => {
+                const on = picked.includes(s.id);
+                return (
+                  <button
+                    key={s.id}
+                    onClick={() => toggleStudent(s.id)}
+                    style={{
+                      padding: "7px 13px", borderRadius: 14, fontSize: 12, fontFamily: "inherit", cursor: "pointer",
+                      background: on ? "rgba(167,139,218,0.15)" : "var(--bg3)",
+                      color: on ? "#a78bda" : "var(--text2)",
+                      border: `0.5px solid ${on ? "#a78bda" : "var(--border2)"}`,
+                    }}
+                  >{on ? "✓ " : ""}{s.name}</button>
+                );
+              })}
+            </div>
+            <p style={{ fontSize: 11, color: "var(--text3)", marginTop: 9 }}>
+              {picked.length === 0 ? "공개할 학생을 골라주세요. 아무도 고르지 않으면 나만 볼 수 있어요." : `${picked.length}명에게 공개 중`}
+            </p>
+          </>
+        )}
+        {note.visibility === "all" && (
+          <p style={{ fontSize: 11, color: "var(--text3)", marginTop: 9 }}>등록된 모든 학생에게 보여요</p>
+        )}
+        {(!note.visibility || note.visibility === "private") && (
+          <p style={{ fontSize: 11, color: "var(--text3)", marginTop: 9 }}>나만 볼 수 있어요</p>
+        )}
+        {visError && <p className="error-text" style={{ marginTop: 8 }}>{visError}</p>}
+        <p style={{ fontSize: 10, color: "var(--text3)", marginTop: 10, lineHeight: 1.6 }}>
+          학생 앱을 연결하기 전에는 설정만 저장돼요.
+        </p>
       </div>
 
       <button
