@@ -45,6 +45,13 @@ export default function App() {
   const go = (screen, params = {}) => setNav({ screen, params });
   const toggleTheme = () => setTheme(t => t === "dark" ? "light" : "dark");
 
+  // 사이드바(NavBar)의 테마 전환 버튼이 보내는 신호를 받는다
+  useEffect(() => {
+    const onToggle = () => setTheme((t) => (t === "dark" ? "light" : "dark"));
+    window.addEventListener("aura-toggle-theme", onToggle);
+    return () => window.removeEventListener("aura-toggle-theme", onToggle);
+  }, []);
+
   if (loading) {
     return (
       <div style={{minHeight:"100vh", background:"var(--bg)", display:"flex", alignItems:"center", justifyContent:"center"}}>

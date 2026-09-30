@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useLessons, useStudents } from "../hooks/useFirestore";
+import NavBar from "../components/NavBar";
 
 const getNow = () => new Date();
 const TODAY = getNow().getDate();
@@ -165,6 +166,8 @@ export default function Home({ go, theme, toggleTheme }) {
         </button>
       </div>
 
+      <div className="home-cols">
+      <div className="home-left">
       {/* 달력 */}
       <div className="section-header">
         <p className="section-title">{viewYear}년 {viewMonth}월</p>
@@ -201,6 +204,8 @@ export default function Home({ go, theme, toggleTheme }) {
         </div>
       </div>
 
+      </div>
+      <div className="home-right">
       {/* 선택된 날 일정 */}
       <div className="schedule-card">
         <p className="schedule-label">{viewMonth}월 {selectedDay}일</p>
@@ -237,6 +242,9 @@ export default function Home({ go, theme, toggleTheme }) {
         <span className="lesson-card-btn">시작하기 →</span>
       </div>
 
+      </div>
+      </div>
+
       {showModal && (
         <AddLessonModal
           students={students}
@@ -248,13 +256,7 @@ export default function Home({ go, theme, toggleTheme }) {
         />
       )}
 
-      <nav className="nav-bar">
-        <button className="nav-item active"><span className="nav-icon">⊙</span><div className="nav-pip" /></button>
-        <button className="nav-item" onClick={() => go("history")}><span className="nav-icon">◷</span><span className="nav-label">History</span></button>
-        <button className="nav-item" onClick={() => go("studentsList")}><span className="nav-icon">👥</span><span className="nav-label">Students</span></button>
-        <button className="nav-item" onClick={() => go("library")}><span className="nav-icon">📓</span><span className="nav-label">Vault</span></button>
-        <button className="nav-item" onClick={() => go("settings")}><span className="nav-icon">◈</span><span className="nav-label">Settings</span></button>
-      </nav>
+      <NavBar go={go} active="home" />
     </div>
   );
 }

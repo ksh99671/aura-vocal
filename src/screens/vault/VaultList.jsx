@@ -183,7 +183,7 @@ export default function VaultList({ go }) {
       )}
 
       {/* 커버 그리드 */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 9 }}>
+      <div className="vault-grid">
         {shown.map((n) => {
           const cat = catOf(n);
           const cover = n.photos?.[0]?.thumb;
