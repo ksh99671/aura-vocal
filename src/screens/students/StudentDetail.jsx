@@ -5,6 +5,11 @@ import { useLessonLogs, useCategories } from "../../hooks/useFirestore";
 import { doc, updateDoc, deleteDoc } from "firebase/firestore";
 import { db, auth } from "../../firebase";
 
+const todayStr = () => {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+};
+
 function getMonthDiff(startDate) {
   if (!startDate) return null;
   const start = new Date(startDate);
@@ -15,7 +20,7 @@ function getMonthDiff(startDate) {
 
 export default function StudentDetail({ go, params }) {
   const student = params?.student;
-  const { logs, addLog } = useLessonLogs(student?.id);
+  const { logs, insertLog } = useLessonLogs(student?.id);
   const { categories } = useCategories();
 
   const [memo, setMemo] = useState(student?.memo || "");
@@ -31,6 +36,8 @@ export default function StudentDetail({ go, params }) {
   const [addingLesson, setAddingLesson] = useState(false);
   const [newLessonMemo, setNewLessonMemo] = useState("");
   const [savingLesson, setSavingLesson] = useState(false);
+  const [insertNo, setInsertNo] = useState("");
+  const [newLessonDate, setNewLessonDate] = useState("");
 
   const [showAll, setShowAll] = useState(false);
 
@@ -43,6 +50,7 @@ export default function StudentDetail({ go, params }) {
   const saveMemo = async () => {
     setSavingMemo(true);
     await updateDoc(getRef(), { memo });
+    go("studentDetail", { student: { ...student, memo } });
     setSavingMemo(false);
     setEditingMemo(false);
   };
@@ -50,6 +58,7 @@ export default function StudentDetail({ go, params }) {
   const saveInfo = async () => {
     setSavingInfo(true);
     await updateDoc(getRef(), { category, startDate, baseCount: Number(baseCount) });
+    go("studentDetail", { student: { ...student, category, startDate, baseCount: Number(baseCount) } });
     setSavingInfo(false);
     setEditingInfo(false);
   };
@@ -62,8 +71,15 @@ export default function StudentDetail({ go, params }) {
 
   const saveLesson = async () => {
     if (!newLessonMemo.trim()) return;
+    const base = Number(baseCount);
+    const no = Number(insertNo);
+    const pos = no - base; // 앱 기록 안에서의 순번
+    if (!Number.isInteger(no) || pos < 1 || pos > logs.length + 1) {
+      alert(`${base + 1}회 ~ ${base + logs.length + 1}회 사이로 입력해주세요`);
+      return;
+    }
     setSavingLesson(true);
-    await addLog({ memo: newLessonMemo.trim() });
+    await insertLog({ position: pos, memo: newLessonMemo.trim(), date: newLessonDate });
     setNewLessonMemo("");
     setAddingLesson(false);
     setSavingLesson(false);
@@ -72,6 +88,17 @@ export default function StudentDetail({ go, params }) {
   if (!student) return null;
 
   const visibleLogs = showAll ? logs : logs.slice(0, 5);
+
+  const baseNum = Number(baseCount);
+  const nextNo = baseNum + logs.length + 1;
+  const noNum = Number(insertNo);
+  let insertHint = "";
+  if (insertNo !== "" && Number.isInteger(noNum)) {
+    if (noNum === nextNo) insertHint = "가장 최근 기록으로 추가돼요";
+    else if (noNum > baseNum && noNum < nextNo)
+      insertHint = `${noNum}회차 자리에 들어가고, 지금 ${noNum}회차인 기록부터 한 칸씩 뒤로 밀려요`;
+    else insertHint = `${baseNum + 1}회 ~ ${nextNo}회 사이로 입력해주세요`;
+  }
 
   return (
     <div className="screen">
@@ -198,7 +225,13 @@ export default function StudentDetail({ go, params }) {
       {/* 레슨 기록 */}
       <div className="section-header">
         <p className="section-title">레슨 기록</p>
-        <button onClick={() => setAddingLesson(!addingLesson)} style={{
+        <button onClick={() => {
+          if (!addingLesson) {
+            setInsertNo(String(Number(baseCount) + logs.length + 1));
+            setNewLessonDate(todayStr());
+          }
+          setAddingLesson(!addingLesson);
+        }} style={{
           fontSize:12, color:"var(--accent)", background:"none", border:"none",
           cursor:"pointer", fontFamily:"inherit", opacity:.85,
         }}>{addingLesson ? "취소" : "+ 레슨 추가"}</button>
@@ -207,6 +240,31 @@ export default function StudentDetail({ go, params }) {
       {/* 레슨 직접 추가 */}
       {addingLesson && (
         <div className="card" style={{marginBottom:10}}>
+          <p className="card-label">몇 회차 자리에 넣을까요?</p>
+          <div style={{display:"flex", alignItems:"center", gap:8, marginBottom:6}}>
+            <input type="number" value={insertNo} min="1" onChange={e => setInsertNo(e.target.value)} style={{
+              width:90, padding:"10px 12px", borderRadius:10, textAlign:"center",
+              background:"var(--bg3)", border:"0.5px solid var(--border2)",
+              color:"var(--text1)", fontSize:14, fontFamily:"inherit", outline:"none",
+            }} />
+            <span style={{fontSize:13, color:"var(--text2)"}}>회차</span>
+          </div>
+          <p style={{fontSize:11, color:"var(--text3)", marginBottom:14, lineHeight:1.6, minHeight:16}}>{insertHint}</p>
+
+          <p className="card-label">날짜 (선택)</p>
+          <div style={{display:"flex", gap:8, alignItems:"center", marginBottom:14}}>
+            <input type="date" value={newLessonDate} onChange={e => setNewLessonDate(e.target.value)} style={{
+              flex:1, padding:"10px 12px", borderRadius:10,
+              background:"var(--bg3)", border:"0.5px solid var(--border2)",
+              color:"var(--text1)", fontSize:13, fontFamily:"inherit", outline:"none",
+            }} />
+            <button onClick={() => setNewLessonDate("")} style={{
+              fontSize:11, color:"var(--text3)", background:"none", whiteSpace:"nowrap",
+              border:"0.5px solid var(--border2)", borderRadius:8,
+              padding:"9px 10px", cursor:"pointer", fontFamily:"inherit",
+            }}>날짜 모름</button>
+          </div>
+
           <p className="card-label">레슨 내용</p>
           <textarea
             value={newLessonMemo} onChange={e => setNewLessonMemo(e.target.value)} rows={5}
@@ -242,8 +300,8 @@ export default function StudentDetail({ go, params }) {
                   padding:"11px 0",
                   borderBottom: i < visibleLogs.length - 1 ? "0.5px solid var(--border)" : "none",
                 }}>
-                <span style={{fontSize:10, color:"var(--text3)", minWidth:32}}>
-                  {log.date?.toDate?.()?.toLocaleDateString("ko-KR", {month:"numeric", day:"numeric"}) || "-"}
+                <span style={{fontSize:10, color:"var(--text3)", minWidth:40, whiteSpace:"nowrap"}}>
+                  {log.date?.toDate?.()?.toLocaleDateString("ko-KR", {month:"numeric", day:"numeric"}) || "날짜 미상"}
                 </span>
                 <p style={{flex:1, fontSize:12, fontWeight:500, color:"var(--text1)", lineHeight:1.5}}>
                   {log.memo ? (log.memo.length > 28 ? log.memo.slice(0, 28) + "..." : log.memo) : "레슨 기록"}

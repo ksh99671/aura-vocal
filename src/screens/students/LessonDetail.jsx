@@ -1,7 +1,21 @@
 import { useState } from "react";
+import { Timestamp } from "firebase/firestore";
 import BackButton from "../../components/BackButton";
 import NavBar from "../../components/NavBar";
 import { useLessonLogs } from "../../hooks/useFirestore";
+
+const toInput = (ts) => {
+  const d = ts?.toDate?.();
+  if (!d) return "";
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+};
+const fromInput = (s) => (s ? Timestamp.fromDate(new Date(s + "T12:00:00")) : null);
+const label = (s) =>
+  s
+    ? new Date(s + "T12:00:00").toLocaleDateString("ko-KR", {
+        year: "numeric", month: "long", day: "numeric", weekday: "short",
+      })
+    : "날짜 미상";
 
 export default function LessonDetail({ go, params }) {
   const student = params?.student;
@@ -10,19 +24,22 @@ export default function LessonDetail({ go, params }) {
   const { updateLog, deleteLog } = useLessonLogs(student?.id);
 
   const [memo, setMemo] = useState(log?.memo || "");
+  const [dateVal, setDateVal] = useState(toInput(log?.date));
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
 
   if (!student || !log) return null;
 
-  const dateStr = log.date?.toDate?.()?.toLocaleDateString("ko-KR", {
-    year: "numeric", month: "long", day: "numeric", weekday: "short",
-  }) || "날짜 없음";
-
   const save = async () => {
     setSaving(true);
-    await updateLog(log.id, { memo });
+    await updateLog(log.id, { memo, date: fromInput(dateVal) });
     setSaving(false);
+    setEditing(false);
+  };
+
+  const cancel = () => {
+    setMemo(log.memo || "");
+    setDateVal(toInput(log.date));
     setEditing(false);
   };
 
@@ -40,7 +57,7 @@ export default function LessonDetail({ go, params }) {
       <div style={{marginBottom:18}}>
         <p className="eyebrow">Lesson {lessonNo}</p>
         <h2 className="screen-title"><strong>{lessonNo}회차 레슨</strong></h2>
-        <p style={{fontSize:13, color:"var(--text2)", marginTop:6}}>{dateStr}</p>
+        <p style={{fontSize:13, color: dateVal ? "var(--text2)" : "var(--text3)", marginTop:6}}>{label(dateVal)}</p>
       </div>
 
       {/* 레슨 내용 */}
@@ -57,6 +74,21 @@ export default function LessonDetail({ go, params }) {
 
         {editing ? (
           <>
+            <p className="card-label">날짜</p>
+            <div style={{display:"flex", gap:8, alignItems:"center", marginBottom:14}}>
+              <input type="date" value={dateVal} onChange={e => setDateVal(e.target.value)} style={{
+                flex:1, padding:"10px 12px", borderRadius:10,
+                background:"var(--bg3)", border:"0.5px solid var(--border2)",
+                color:"var(--text1)", fontSize:13, fontFamily:"inherit", outline:"none",
+              }} />
+              <button onClick={() => setDateVal("")} style={{
+                fontSize:11, color:"var(--text3)", background:"none", whiteSpace:"nowrap",
+                border:"0.5px solid var(--border2)", borderRadius:8,
+                padding:"9px 10px", cursor:"pointer", fontFamily:"inherit",
+              }}>날짜 모름</button>
+            </div>
+
+            <p className="card-label">내용</p>
             <textarea
               value={memo} onChange={e => setMemo(e.target.value)} rows={12}
               placeholder="오늘 레슨에서 다룬 내용, 학생 상태, 다음 과제 등을 자유롭게 적어보세요"
@@ -68,7 +100,7 @@ export default function LessonDetail({ go, params }) {
               }}
             />
             <div className="btn-row" style={{marginTop:10}}>
-              <button className="btn-secondary" onClick={() => { setMemo(log.memo || ""); setEditing(false); }}>취소</button>
+              <button className="btn-secondary" onClick={cancel}>취소</button>
               <button className="btn-primary" disabled={saving} onClick={save}>
                 {saving ? "저장 중..." : "저장"}
               </button>
