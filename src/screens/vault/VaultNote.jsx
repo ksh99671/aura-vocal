@@ -58,7 +58,9 @@ export default function VaultNote({ go, params }) {
 
   const flash = () => {
     setSavedFlash(true);
-    setTimeout(() => setSavedFlash(false), 1500);
+    // 알림 효과 길이(CSS의 --speed에 따라 달라짐)에 맞춰 화면에서 뺀다
+    const sp = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--speed")) || 1;
+    setTimeout(() => setSavedFlash(false), 2200 * sp + 120);
   };
 
   // 제목/내용: 글자를 누르면 바로 고칠 수 있고, 바깥을 누르면 저장된다
