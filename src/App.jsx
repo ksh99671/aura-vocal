@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useLayoutEffect } from "react";
 import { useAuth } from "./hooks/useAuth";
 import Login from "./screens/Login";
 import Home from "./screens/Home";
@@ -44,6 +44,17 @@ export default function App() {
 
   const go = (screen, params = {}) => setNav({ screen, params });
   const toggleTheme = () => setTheme(t => t === "dark" ? "light" : "dark");
+
+  // 화면이 바뀐 직후에만 "화면 진입 효과"를 켠다. (나중에 생기는 입력칸/폼에는 진입 효과가 붙지 않게)
+  // html의 data-screen 으로 화면마다 다른 효과를 고른다. (index.css의 AURA-MOTION 블록이 사용)
+  useLayoutEffect(() => {
+    const root = document.documentElement;
+    root.setAttribute("data-screen", screen);
+    root.setAttribute("data-entering", "");
+    const sp = parseFloat(getComputedStyle(root).getPropertyValue("--speed")) || 1;
+    const id = setTimeout(() => root.removeAttribute("data-entering"), 1300 * sp + 200);
+    return () => clearTimeout(id);
+  }, [screen, user, loading]);
 
   // 사이드바(NavBar)의 테마 전환 버튼이 보내는 신호를 받는다
   useEffect(() => {

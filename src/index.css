@@ -449,26 +449,58 @@ div[style*="position: fixed"][style*="z-index: 200"] > div {
   body:has(.nav-bar) .screen > :first-child { padding-top: 16px !important; }
 }
 
-/* AURA-MOTION v3: 움직임 규칙 — 용도마다 성격이 다르고, 전체 속도는 --speed 하나로 조절한다.
-   --speed: 1 이 기본, 1.5 는 더 느긋하게, 0.7 은 빠르게. (배치 규칙인 AURA-RESPONSIVE 블록과 분리)
-   탭 이동=초점 맞춤 / 상세 진입=밀려 들어옴 / 팝업=튕김 / Vault=카드 펼침 / 학생=출렁 / 일정=통통 / 알림=고무공 / 달력=파동 / 사진=초점 확대 */
+/* AURA-MOTION v4: 움직임 규칙 — 화면마다, 동작마다 서로 다른 효과. 전체 속도는 --speed 하나로 조절한다.
+   App.jsx가 <html>에 data-screen(지금 화면 이름)과 data-entering(화면에 막 들어온 직후 잠깐)을 달아준다.
+   - 화면 진입 효과는 data-entering 동안에만 걸려서, 나중에 생기는 입력칸/폼에는 붙지 않는다.
+   - 효과를 바꾸고 싶은 화면은 아래 "화면별 진입 효과"에서 그 화면 줄만 고치면 된다.
+   (배치 규칙인 AURA-RESPONSIVE 블록과 분리) */
 :root {
   --speed: 1.5;
   --dur-fast: .15s;
   --ease-out: cubic-bezier(.2, .7, .2, 1);
+  --ease-quint: cubic-bezier(.22, 1, .36, 1);
+  --ease-spring: cubic-bezier(.3, 1.25, .5, 1);
+  --ease-bounce: cubic-bezier(.34, 1.56, .64, 1);
 }
 
 /* 옆으로 밀려 들어오는 효과가 가로 스크롤을 만들지 않게 */
 .app-root { overflow-x: clip; }
 
-@keyframes nTab   { from { opacity: 0; filter: blur(5px); transform: scale(.97); } to { opacity: 1; filter: blur(0); transform: none; } }
-@keyframes nPush  { from { opacity: 0; transform: translateX(min(38%, 140px)); } to { opacity: 1; transform: none; } }
-@keyframes nSheet { from { transform: translateY(104%); } to { transform: none; } }
-@keyframes nPop   { from { opacity: 0; transform: scale(.85); } to { opacity: 1; transform: none; } }
-@keyframes nFade  { from { opacity: 0; } to { opacity: 1; } }
-@keyframes nDeal  { from { opacity: 0; transform: translate(-18px, 46px) rotate(-9deg) scale(.7); } to { opacity: 1; transform: none; } }
-@keyframes nRow   { 0% { opacity: 0; transform: translateX(-46px); } 55% { opacity: 1; transform: translateX(7px); } 78% { transform: translateX(-3px); } 100% { opacity: 1; transform: none; } }
-@keyframes nDrop  { 0% { opacity: 0; transform: translateY(-34px); } 50% { opacity: 1; transform: translateY(0); } 68% { transform: translateY(-8px); } 84% { transform: translateY(0); } 92% { transform: translateY(-2.5px); } 100% { transform: none; } }
+/* ── 화면 진입용 ── */
+@keyframes nRise     { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+@keyframes nTab      { from { opacity: 0; filter: blur(5px); transform: scale(.97); } to { opacity: 1; filter: blur(0); transform: none; } }
+@keyframes nWipe     { from { opacity: 0; clip-path: inset(100% 0 0 0); transform: translateY(24px); } to { opacity: 1; clip-path: inset(0 0 0 0); transform: none; } }
+@keyframes nSlideL   { from { opacity: 0; transform: translateX(-28px); } to { opacity: 1; transform: none; } }
+@keyframes nSwing    { 0% { opacity: 0; transform: perspective(500px) rotateX(-70deg); } 60% { opacity: 1; transform: perspective(500px) rotateX(12deg); } 80% { transform: perspective(500px) rotateX(-5deg); } 100% { opacity: 1; transform: none; } }
+@keyframes nFlip     { from { opacity: 0; transform: perspective(700px) rotateY(55deg); } to { opacity: 1; transform: none; } }
+@keyframes nBurst    { from { opacity: 0; transform: scale(.7); } to { opacity: 1; transform: none; } }
+@keyframes nFanL     { from { opacity: 0; transform: translateX(-64px) rotate(-3deg); } to { opacity: 1; transform: none; } }
+@keyframes nFanR     { from { opacity: 0; transform: translateX(64px) rotate(3deg); } to { opacity: 1; transform: none; } }
+@keyframes nRiseSkew { from { opacity: 0; transform: translateY(60px) skewY(4deg); } to { opacity: 1; transform: none; } }
+@keyframes nIris     { from { opacity: 0; clip-path: circle(0% at 50% 28%); } to { opacity: 1; clip-path: circle(150% at 50% 28%); } }
+@keyframes nPush     { from { opacity: 0; transform: translateX(min(38%, 140px)); } to { opacity: 1; transform: none; } }
+@keyframes nPushL    { from { opacity: 0; transform: translateX(calc(min(38%, 140px) * -1)); } to { opacity: 1; transform: none; } }
+@keyframes nDiag     { from { opacity: 0; transform: translate(42px, 42px); } to { opacity: 1; transform: none; } }
+@keyframes nSettle   { from { opacity: 0; filter: blur(4px); transform: scale(1.08); } to { opacity: 1; filter: blur(0); transform: none; } }
+/* ── 목록/카드용 ── */
+@keyframes nDeal     { from { opacity: 0; transform: translate(-18px, 46px) rotate(-9deg) scale(.7); } to { opacity: 1; transform: none; } }
+@keyframes nRow      { 0% { opacity: 0; transform: translateX(-46px); } 55% { opacity: 1; transform: translateX(7px); } 78% { transform: translateX(-3px); } 100% { opacity: 1; transform: none; } }
+@keyframes nDrop     { 0% { opacity: 0; transform: translateY(-34px); } 50% { opacity: 1; transform: translateY(0); } 68% { transform: translateY(-8px); } 84% { transform: translateY(0); } 92% { transform: translateY(-2.5px); } 100% { transform: none; } }
+/* ── 나중에 생기는 입력칸/폼용 ── */
+@keyframes nStretch  { from { opacity: .3; transform: scaleX(.55); } to { opacity: 1; transform: none; } }
+@keyframes nGrow     { from { opacity: .3; transform: scaleY(.8); } to { opacity: 1; transform: none; } }
+@keyframes nUnfold   { from { opacity: 0; clip-path: inset(0 0 100% 0); transform: translateY(-10px); } to { opacity: 1; clip-path: inset(0 0 0 0); transform: none; } }
+@keyframes nPopTop   { 0% { opacity: 0; transform: scale(.88); } 60% { opacity: 1; transform: scale(1.03); } 100% { opacity: 1; transform: none; } }
+@keyframes nShake    { 0%, 100% { transform: none; } 20% { transform: translateX(-7px); } 40% { transform: translateX(6px); } 60% { transform: translateX(-4px); } 80% { transform: translateX(3px); } }
+@keyframes nFade     { from { opacity: 0; } to { opacity: 1; } }
+/* ── 팝업/사진/알림/달력 ── */
+@keyframes nSheet        { from { transform: translateY(104%); } to { transform: none; } }
+@keyframes nSheetFlip    { from { opacity: 0; transform: perspective(900px) rotateX(38deg) translateY(60%); } to { opacity: 1; transform: none; } }
+@keyframes nSheetCurtain { from { clip-path: inset(100% 0 0 0); } to { clip-path: inset(0 0 0 0); } }
+@keyframes nPop          { from { opacity: 0; transform: scale(.85); } to { opacity: 1; transform: none; } }
+@keyframes nPopDrop      { from { opacity: 0; transform: translateY(-40px) scale(.94); } to { opacity: 1; transform: none; } }
+@keyframes nPopTilt      { from { opacity: 0; transform: rotate(-4deg) scale(.88); } to { opacity: 1; transform: none; } }
+@keyframes nZoom  { from { opacity: 0; filter: blur(10px); transform: scale(.82); } to { opacity: 1; filter: blur(0); transform: none; } }
 @keyframes nToast {
   0%   { opacity: 0; transform: translateX(-50%) scale(.5) translateY(18px); }
   9%   { opacity: 1; transform: translateX(-50%) scale(1.15); }
@@ -479,59 +511,86 @@ div[style*="position: fixed"][style*="z-index: 200"] > div {
   100% { opacity: 0; transform: translateX(-50%) translateY(-16px); }
 }
 @keyframes nRing  { 0% { box-shadow: 0 0 0 0 rgba(201,169,110,.7), 0 0 0 0 rgba(201,169,110,.45); } 55% { box-shadow: 0 0 0 9px rgba(201,169,110,0), 0 0 0 4px rgba(201,169,110,.35); } 100% { box-shadow: 0 0 0 9px rgba(201,169,110,0), 0 0 0 18px rgba(201,169,110,0); } }
-@keyframes nZoom  { from { opacity: 0; filter: blur(10px); transform: scale(.82); } to { opacity: 1; filter: blur(0); transform: none; } }
 
-/* ── A. 탭 화면 바꿀 때: 흐릿하다가 초점이 맞는다 (탭바/사이드바는 가만히, 내용만) ── */
+/* ════ 화면별 진입 효과 (화면에 막 들어온 직후에만) ════ */
 .screen { animation: none; }
-.screen:not(:has(> .back-btn)) > :not(.nav-bar):not(.vault-grid):not(.student-card):not([style*="position: fixed"]) {
-  animation: nTab calc(.5s * var(--speed)) cubic-bezier(.22, 1, .36, 1) backwards;
+/* 목록에 없는 화면(옛 셀프 진단 흐름 등): 기본 */
+html[data-entering] .screen > :where(:not(.nav-bar):not(.vault-grid):not(.student-card):not([style*="position: fixed"])) {
+  animation: nRise calc(.4s * var(--speed)) var(--ease-quint) backwards;
 }
-/* ── B. 상세로 들어갈 때: 오른쪽에서 밀려 들어온다 (뒤로 가기 버튼이 있는 화면) ── */
-.screen:has(> .back-btn) > :not(.nav-bar):not(.vault-grid):not(.student-card):not([style*="position: fixed"]) {
-  animation: nPush calc(.55s * var(--speed)) cubic-bezier(.22, 1, .36, 1) backwards;
-}
+html[data-entering][data-screen="home"]          .screen > :where(:not(.nav-bar):not(.vault-grid):not(.student-card):not([style*="position: fixed"])) { animation: nTab calc(.5s * var(--speed)) var(--ease-quint) backwards; }
+html[data-entering][data-screen="history"]       .screen > :where(:not(.nav-bar):not(.vault-grid):not(.student-card):not([style*="position: fixed"])) { animation: nWipe calc(.7s * var(--speed)) cubic-bezier(.65, 0, .35, 1) backwards; }
+html[data-entering][data-screen="studentsList"]  .screen > :where(:not(.nav-bar):not(.vault-grid):not(.student-card):not([style*="position: fixed"])) { animation: nSlideL calc(.5s * var(--speed)) var(--ease-quint) backwards; }
+html[data-entering][data-screen="library"]       .screen > :where(:not(.nav-bar):not(.vault-grid):not(.student-card):not([style*="position: fixed"])) { animation: nSwing calc(.8s * var(--speed)) var(--ease-out) backwards; transform-origin: top center; }
+html[data-entering][data-screen="settings"]      .screen > :where(:not(.nav-bar):not(.vault-grid):not(.student-card):not([style*="position: fixed"])) { animation: nFlip calc(.65s * var(--speed)) var(--ease-quint) backwards; transform-origin: left center; }
+html[data-entering][data-screen="lessonHub"]     .screen > :where(:not(.nav-bar):not(.vault-grid):not(.student-card):not([style*="position: fixed"])) { animation: nBurst calc(.55s * var(--speed)) var(--ease-bounce) backwards; }
+html[data-entering][data-screen="studentSelect"] .screen > :where(:not(.nav-bar):not(.vault-grid):not(.student-card):not([style*="position: fixed"])):nth-child(odd)  { animation: nFanL calc(.6s * var(--speed)) var(--ease-quint) backwards; }
+html[data-entering][data-screen="studentSelect"] .screen > :where(:not(.nav-bar):not(.vault-grid):not(.student-card):not([style*="position: fixed"])):nth-child(even) { animation: nFanR calc(.6s * var(--speed)) var(--ease-quint) backwards; animation-delay: calc(90ms * var(--speed)); }
+html[data-entering][data-screen="checklist"]     .screen > :where(:not(.nav-bar):not(.vault-grid):not(.student-card):not([style*="position: fixed"])) { animation: nRiseSkew calc(.6s * var(--speed)) var(--ease-quint) backwards; }
+html[data-entering][data-screen="lessonResult"]  .screen > :where(:not(.nav-bar):not(.vault-grid):not(.student-card):not([style*="position: fixed"])) { animation: nIris calc(.8s * var(--speed)) cubic-bezier(.4, 0, .2, 1) backwards; }
+html[data-entering][data-screen="studentDetail"] .screen > :where(:not(.nav-bar):not(.vault-grid):not(.student-card):not([style*="position: fixed"])) { animation: nPush calc(.55s * var(--speed)) var(--ease-quint) backwards; }
+html[data-entering][data-screen="lessonDetail"]  .screen > :where(:not(.nav-bar):not(.vault-grid):not(.student-card):not([style*="position: fixed"])) { animation: nDiag calc(.55s * var(--speed)) var(--ease-quint) backwards; }
+html[data-entering][data-screen="vaultNote"]     .screen > :where(:not(.nav-bar):not(.vault-grid):not(.student-card):not([style*="position: fixed"])) { animation: nSettle calc(.6s * var(--speed)) var(--ease-quint) backwards; }
+html[data-entering][data-screen="vaultEdit"]     .screen > :where(:not(.nav-bar):not(.vault-grid):not(.student-card):not([style*="position: fixed"])) { animation: nPushL calc(.55s * var(--speed)) var(--ease-quint) backwards; }
 
-/* ── D. Vault 커버: 카드를 던져 펼치듯 (6번째 이후는 같이) ── */
+/* ════ 목록/카드 (데이터가 늦게 도착해도 나타날 때 효과가 붙도록 data-entering과 무관) ════ */
+/* Vault 커버: 카드를 던져 펼치듯 (6번째 이후는 같이) */
 .vault-grid > * { animation: nDeal calc(.7s * var(--speed)) cubic-bezier(.3, 1.4, .5, 1) backwards; }
 .vault-grid > :nth-child(2) { animation-delay: calc(90ms * var(--speed)); }
 .vault-grid > :nth-child(3) { animation-delay: calc(180ms * var(--speed)); }
 .vault-grid > :nth-child(4) { animation-delay: calc(270ms * var(--speed)); }
 .vault-grid > :nth-child(5) { animation-delay: calc(360ms * var(--speed)); }
 .vault-grid > :nth-child(n+6) { animation-delay: calc(450ms * var(--speed)); }
-
-/* ── E. 학생 목록: 왼쪽에서 출렁이며 한 줄씩 ── */
-.screen > .student-card { animation: nRow calc(.6s * var(--speed)) cubic-bezier(.3, .9, .4, 1) backwards; }
-.screen > .student-card:nth-child(4) { animation-delay: calc(90ms * var(--speed)); }
-.screen > .student-card:nth-child(5) { animation-delay: calc(180ms * var(--speed)); }
-.screen > .student-card:nth-child(6) { animation-delay: calc(270ms * var(--speed)); }
-.screen > .student-card:nth-child(7) { animation-delay: calc(360ms * var(--speed)); }
-.screen > .student-card:nth-child(n+8) { animation-delay: calc(450ms * var(--speed)); }
-
-/* ── F. 오늘 일정: 위에서 떨어져 통통 ── */
+/* 학생 목록(Students 탭): 왼쪽에서 출렁이며 한 줄씩 */
+html[data-screen="studentsList"] .screen > .student-card { animation: nRow calc(.6s * var(--speed)) cubic-bezier(.3, .9, .4, 1) backwards; }
+html[data-screen="studentsList"] .screen > .student-card:nth-child(4) { animation-delay: calc(90ms * var(--speed)); }
+html[data-screen="studentsList"] .screen > .student-card:nth-child(5) { animation-delay: calc(180ms * var(--speed)); }
+html[data-screen="studentsList"] .screen > .student-card:nth-child(6) { animation-delay: calc(270ms * var(--speed)); }
+html[data-screen="studentsList"] .screen > .student-card:nth-child(7) { animation-delay: calc(360ms * var(--speed)); }
+html[data-screen="studentsList"] .screen > .student-card:nth-child(n+8) { animation-delay: calc(450ms * var(--speed)); }
+/* 학생 선택(레슨 흐름): 좌우에서 번갈아 부채처럼 */
+html[data-screen="studentSelect"] .screen > .student-card:nth-child(odd)  { animation: nFanL calc(.6s * var(--speed)) var(--ease-quint) backwards; }
+html[data-screen="studentSelect"] .screen > .student-card:nth-child(even) { animation: nFanR calc(.6s * var(--speed)) var(--ease-quint) backwards; animation-delay: calc(90ms * var(--speed)); }
+/* 오늘 일정: 위에서 떨어져 통통 */
 .schedule-item { animation: nDrop calc(.7s * var(--speed)) cubic-bezier(.3, .8, .4, 1) backwards; }
 .schedule-item:nth-child(3) { animation-delay: calc(120ms * var(--speed)); }
 .schedule-item:nth-child(n+4) { animation-delay: calc(240ms * var(--speed)); }
 
-/* ── C. 팝업: 폰은 아래에서 튕기며 올라오고, 넓은 화면은 가운데서 커진다 ── */
+/* ════ 나중에 생기는 입력칸/폼 (화면 진입 효과가 아니라 각자의 효과) ════ */
+/* 노트: 제목을 누르면 입력칸이 옆으로 늘어나고, 내용을 누르면 아래로 자라난다. 고친 글은 다시 서서히 */
+html[data-screen="vaultNote"][data-screen] .screen > input    { animation: nStretch calc(.45s * var(--speed)) var(--ease-spring) backwards; transform-origin: left center; }
+html[data-screen="vaultNote"][data-screen] .screen > textarea { animation: nGrow calc(.5s * var(--speed)) var(--ease-spring) backwards; transform-origin: top center; }
+html[data-screen="vaultNote"]:not([data-entering]) .screen > :where(h2, p) { animation: nFade calc(.3s * var(--speed)) ease-out backwards; }
+/* 학생 상세: 수정/레슨 추가 패널이 위에서 펼쳐진다 */
+html[data-screen="studentDetail"]:not([data-entering]) .screen > .card { animation: nUnfold calc(.5s * var(--speed)) var(--ease-quint) backwards; }
+/* Students: 학생 추가 폼이 버튼 자리에서 톡 */
+html[data-screen="studentsList"]:not([data-entering]) .screen > .checklist-item { animation: nPopTop calc(.45s * var(--speed)) var(--ease-out) backwards; transform-origin: top left; }
+/* 오류 문구: 좌우로 흔들림 */
+.error-text { animation: nShake calc(.45s * var(--speed)) ease-in-out; }
+
+/* ════ 팝업: 화면마다 다른 등장 (폰은 아래에서, 넓은 화면은 가운데서) ════ */
 div[style*="position: fixed"][style*="z-index: 200"] { animation: nFade calc(.3s * var(--speed)) ease-out backwards; }
-div[style*="position: fixed"][style*="z-index: 200"] > div { animation: nSheet calc(.65s * var(--speed)) cubic-bezier(.3, 1.25, .5, 1) backwards; }
+div[style*="position: fixed"][style*="z-index: 200"] > div { animation: nSheet calc(.65s * var(--speed)) var(--ease-spring) backwards; }
+html[data-screen="home"]         div[style*="position: fixed"][style*="z-index: 200"] > div { animation: nSheet calc(.65s * var(--speed)) var(--ease-spring) backwards; }
+html[data-screen="studentsList"] div[style*="position: fixed"][style*="z-index: 200"] > div { animation: nSheetFlip calc(.6s * var(--speed)) var(--ease-quint) backwards; transform-origin: bottom center; }
+html[data-screen="library"]      div[style*="position: fixed"][style*="z-index: 200"] > div { animation: nSheetCurtain calc(.55s * var(--speed)) cubic-bezier(.65, 0, .35, 1) backwards; }
 @media (max-width: 599px) {
   /* 튕길 때 시트 아래가 비어 보이지 않도록 같은 색으로 아래를 길게 채운다 */
   div[style*="position: fixed"][style*="z-index: 200"] > div { box-shadow: 0 140px 0 0 var(--bg2); }
 }
 @media (min-width: 600px) {
-  div[style*="position: fixed"][style*="z-index: 200"] > div { animation: nPop calc(.45s * var(--speed)) cubic-bezier(.3, 1.3, .5, 1) backwards; }
+  div[style*="position: fixed"][style*="z-index: 200"] > div { animation: nPop calc(.45s * var(--speed)) var(--ease-bounce) backwards; }
+  html[data-screen="home"]         div[style*="position: fixed"][style*="z-index: 200"] > div { animation: nPop calc(.45s * var(--speed)) var(--ease-bounce) backwards; }
+  html[data-screen="studentsList"] div[style*="position: fixed"][style*="z-index: 200"] > div { animation: nPopDrop calc(.5s * var(--speed)) var(--ease-quint) backwards; }
+  html[data-screen="library"]      div[style*="position: fixed"][style*="z-index: 200"] > div { animation: nPopTilt calc(.5s * var(--speed)) var(--ease-bounce) backwards; }
 }
 
-/* ── I. 사진 크게 보기: 흐릿하다가 선명해지며 확대 ── */
+/* 사진 크게 보기: 흐릿하다가 선명해지며 확대 */
 div[style*="position: fixed"][style*="z-index: 300"] { animation: nFade calc(.3s * var(--speed)) ease-out backwards; }
-div[style*="position: fixed"][style*="z-index: 300"] > img { animation: nZoom calc(.5s * var(--speed)) cubic-bezier(.22, 1, .36, 1) backwards; }
-
-/* ── G. "✓ 저장됨" 알림: 고무공처럼 튀어나왔다가 위로 사라진다.
-      (화면에서 빼는 시점은 VaultNote.jsx가 이 길이에 맞춰 2200ms × --speed 로 계산한다) ── */
+div[style*="position: fixed"][style*="z-index: 300"] > img { animation: nZoom calc(.5s * var(--speed)) var(--ease-quint) backwards; }
+/* "✓ 저장됨" 알림: 고무공처럼 튀어나왔다가 위로 사라진다 (화면에서 빼는 시점은 VaultNote.jsx가 2200ms × --speed 로 계산) */
 div[style*="position: fixed"][style*="z-index: 250"] { animation: nToast calc(2.2s * var(--speed)) ease both; }
-
-/* ── H. 달력 날짜 고르기: 고른 날짜에 파동이 두 겹으로 ── */
+/* 달력 날짜 고르기: 고른 날짜에 파동이 두 겹으로 */
 .cal-day.selected { position: relative; z-index: 1; animation: nRing calc(.9s * var(--speed)) ease-out; }
 
 /* 누르는 느낌 (반응이라서 느리게 하지 않는다) */
