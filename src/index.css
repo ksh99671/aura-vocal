@@ -448,3 +448,67 @@ div[style*="position: fixed"][style*="z-index: 200"] > div {
   .nav-theme-btn { padding: 6px 0; }
   body:has(.nav-bar) .screen > :first-child { padding-top: 16px !important; }
 }
+
+/* AURA-MOTION v1: 움직임 규칙. 속도와 곡선은 아래 변수 세 개만 바꾸면 전체가 바뀐다.
+   (배치 규칙인 AURA-RESPONSIVE 블록과 일부러 분리해 두었다) */
+:root {
+  --ease-out: cubic-bezier(.2, .7, .2, 1);
+  --dur-fast: .15s;
+  --dur: .28s;
+}
+
+@keyframes aFadeUp  { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+@keyframes aFadeIn  { from { opacity: 0; } to { opacity: 1; } }
+@keyframes aSheetUp { from { opacity: 0; transform: translateY(28px); } to { opacity: 1; transform: none; } }
+@keyframes aPop     { from { opacity: 0; transform: scale(.96); } to { opacity: 1; transform: none; } }
+@keyframes aToast   { 0% { opacity: 0; transform: translateX(-50%) translateY(8px); } 14% { opacity: 1; transform: translateX(-50%); } 80% { opacity: 1; } 100% { opacity: 0; } }
+
+/* 화면 전환: 탭바/사이드바는 가만히 두고, 나머지 내용만 살짝 떠오르게.
+   (탭바가 화면 안에 있어서 화면 전체에 효과를 주면 탭바가 같이 튄다) */
+.screen { animation: none; }
+.screen > :not(.nav-bar):not(.vault-grid):not([style*="position: fixed"]) {
+  animation: aFadeUp var(--dur) var(--ease-out) backwards;
+}
+
+/* Vault 커버: 위에서부터 차례로 */
+.vault-grid > * { animation: aFadeUp var(--dur) var(--ease-out) backwards; }
+.vault-grid > :nth-child(2) { animation-delay: 40ms; }
+.vault-grid > :nth-child(3) { animation-delay: 80ms; }
+.vault-grid > :nth-child(4) { animation-delay: 120ms; }
+.vault-grid > :nth-child(5) { animation-delay: 160ms; }
+.vault-grid > :nth-child(6) { animation-delay: 200ms; }
+.vault-grid > :nth-child(7) { animation-delay: 240ms; }
+.vault-grid > :nth-child(8) { animation-delay: 280ms; }
+.vault-grid > :nth-child(n+9) { animation-delay: 320ms; }
+
+/* 홈: 선택한 날 일정이 바뀔 때 */
+.schedule-item { animation: aFadeUp var(--dur) var(--ease-out) backwards; }
+
+/* 팝업: 배경은 서서히, 시트는 폰에서 아래에서 올라오고 넓은 화면에서는 가운데서 커진다.
+   (끝난 뒤에 효과의 마지막 상태가 남지 않도록 backwards만 쓴다) */
+div[style*="position: fixed"][style*="z-index: 200"] { animation: aFadeIn .2s ease-out backwards; }
+div[style*="position: fixed"][style*="z-index: 200"] > div { animation: aSheetUp .3s var(--ease-out) backwards; }
+@media (min-width: 600px) {
+  div[style*="position: fixed"][style*="z-index: 200"] > div { animation: aPop .22s var(--ease-out) backwards; }
+}
+
+/* 사진 크게 보기 */
+div[style*="position: fixed"][style*="z-index: 300"] { animation: aFadeIn .2s ease-out backwards; }
+
+/* "✓ 저장됨" 알림: 나타났다가 스스로 사라진다 (1.5초 뒤 화면에서 빠지기 전에 끝남) */
+div[style*="position: fixed"][style*="z-index: 250"] { animation: aToast 1.4s var(--ease-out) both; }
+
+/* 누르는 느낌 */
+.btn-primary, .btn-secondary, .btn-dashed, .student-card, .lesson-card-main, .sub-card, .vault-grid > * {
+  transition: transform var(--dur-fast) var(--ease-out), opacity var(--dur-fast) var(--ease-out), background-color var(--dur-fast) var(--ease-out);
+}
+.btn-primary:active:not(:disabled), .btn-secondary:active, .btn-dashed:active,
+.student-card:active, .lesson-card-main:active, .sub-card:active, .vault-grid > *:active { transform: scale(.98); }
+.nav-bar .nav-item { transition: background-color var(--dur-fast) var(--ease-out), transform var(--dur-fast) var(--ease-out); }
+.nav-bar .nav-item:active { transform: scale(.94); }
+
+/* 폰 설정에서 "동작 줄이기"/"애니메이션 제거"를 켠 경우: 움직임을 끈다 */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .01ms !important; animation-delay: 0s !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; scroll-behavior: auto !important; }
+  div[style*="position: fixed"][style*="z-index: 250"] { animation: none !important; }
+}
