@@ -449,54 +449,95 @@ div[style*="position: fixed"][style*="z-index: 200"] > div {
   body:has(.nav-bar) .screen > :first-child { padding-top: 16px !important; }
 }
 
-/* AURA-MOTION v1: 움직임 규칙. 속도와 곡선은 아래 변수 세 개만 바꾸면 전체가 바뀐다.
-   (배치 규칙인 AURA-RESPONSIVE 블록과 일부러 분리해 두었다) */
+/* AURA-MOTION v2: 움직임 규칙 — 용도마다 다르게. 방향이 의미를 가진다.
+   탭 이동(방향 없음) / 상세 진입(오른쪽에서) / 팝업(아래·가운데) / 목록(왼쪽·위·펼침) / 알림(톡) / 달력(파동)
+   속도와 곡선은 아래 변수로 한꺼번에 조절한다. (배치 규칙인 AURA-RESPONSIVE 블록과 분리) */
 :root {
   --ease-out: cubic-bezier(.2, .7, .2, 1);
+  --ease-push: cubic-bezier(.2, .8, .2, 1);
+  --ease-spring: cubic-bezier(.34, 1.45, .64, 1);
+  --ease-pop: cubic-bezier(.34, 1.3, .64, 1);
   --dur-fast: .15s;
   --dur: .28s;
 }
 
-@keyframes aFadeUp  { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+/* 옆으로 밀려 들어오는 효과가 가로 스크롤을 만들지 않게 */
+.app-root { overflow-x: clip; }
+
+@keyframes aTabIn   { from { opacity: 0; transform: scale(.985); } to { opacity: 1; transform: none; } }
+@keyframes aPushIn  { from { opacity: 0; transform: translateX(30px); } to { opacity: 1; transform: none; } }
 @keyframes aFadeIn  { from { opacity: 0; } to { opacity: 1; } }
-@keyframes aSheetUp { from { opacity: 0; transform: translateY(28px); } to { opacity: 1; transform: none; } }
-@keyframes aPop     { from { opacity: 0; transform: scale(.96); } to { opacity: 1; transform: none; } }
-@keyframes aToast   { 0% { opacity: 0; transform: translateX(-50%) translateY(8px); } 14% { opacity: 1; transform: translateX(-50%); } 80% { opacity: 1; } 100% { opacity: 0; } }
+@keyframes aSheetUp { from { opacity: 0; transform: translateY(54px); } to { opacity: 1; transform: none; } }
+@keyframes aPop     { from { opacity: 0; transform: scale(.94); } to { opacity: 1; transform: none; } }
+@keyframes aZoomIn  { from { opacity: 0; transform: scale(.9); } to { opacity: 1; transform: none; } }
+@keyframes aDealIn  { from { opacity: 0; transform: translateY(10px) scale(.88) rotate(-2.5deg); } to { opacity: 1; transform: none; } }
+@keyframes aRowIn   { from { opacity: 0; transform: translateX(-18px); } to { opacity: 1; transform: none; } }
+@keyframes aDropIn  { from { opacity: 0; transform: translateY(-12px); } to { opacity: 1; transform: none; } }
+@keyframes aToast {
+  0%   { opacity: 0; transform: translateX(-50%) scale(.7); }
+  12%  { opacity: 1; transform: translateX(-50%) scale(1.07); }
+  20%  { opacity: 1; transform: translateX(-50%) scale(1); }
+  80%  { opacity: 1; transform: translateX(-50%) scale(1); }
+  100% { opacity: 0; transform: translateX(-50%) translateY(-8px); }
+}
+@keyframes aRing    { 0% { box-shadow: 0 0 0 0 rgba(201,169,110,.6); } 100% { box-shadow: 0 0 0 8px rgba(201,169,110,0); } }
 
-/* 화면 전환: 탭바/사이드바는 가만히 두고, 나머지 내용만 살짝 떠오르게.
-   (탭바가 화면 안에 있어서 화면 전체에 효과를 주면 탭바가 같이 튄다) */
+/* ── A. 탭 화면 바꿀 때: 숨 쉬듯 (탭바/사이드바는 가만히, 내용만) ── */
 .screen { animation: none; }
-.screen > :not(.nav-bar):not(.vault-grid):not([style*="position: fixed"]) {
-  animation: aFadeUp var(--dur) var(--ease-out) backwards;
+.screen:not(:has(> .back-btn)) > :not(.nav-bar):not(.vault-grid):not(.student-card):not([style*="position: fixed"]) {
+  animation: aTabIn var(--dur) var(--ease-out) backwards;
+}
+/* ── B. 상세로 들어갈 때: 오른쪽에서 밀려 들어옴 (뒤로 가기 버튼이 있는 화면) ── */
+.screen:has(> .back-btn) > :not(.nav-bar):not(.vault-grid):not(.student-card):not([style*="position: fixed"]) {
+  animation: aPushIn .32s var(--ease-push) backwards;
 }
 
-/* Vault 커버: 위에서부터 차례로 */
-.vault-grid > * { animation: aFadeUp var(--dur) var(--ease-out) backwards; }
-.vault-grid > :nth-child(2) { animation-delay: 40ms; }
-.vault-grid > :nth-child(3) { animation-delay: 80ms; }
-.vault-grid > :nth-child(4) { animation-delay: 120ms; }
-.vault-grid > :nth-child(5) { animation-delay: 160ms; }
-.vault-grid > :nth-child(6) { animation-delay: 200ms; }
-.vault-grid > :nth-child(7) { animation-delay: 240ms; }
-.vault-grid > :nth-child(8) { animation-delay: 280ms; }
-.vault-grid > :nth-child(n+9) { animation-delay: 320ms; }
+/* ── D. Vault 커버: 카드를 펼치듯 하나씩 ── */
+.vault-grid > * { animation: aDealIn .4s var(--ease-pop) backwards; }
+.vault-grid > :nth-child(2) { animation-delay: 45ms; }
+.vault-grid > :nth-child(3) { animation-delay: 90ms; }
+.vault-grid > :nth-child(4) { animation-delay: 135ms; }
+.vault-grid > :nth-child(5) { animation-delay: 180ms; }
+.vault-grid > :nth-child(6) { animation-delay: 225ms; }
+.vault-grid > :nth-child(7) { animation-delay: 270ms; }
+.vault-grid > :nth-child(8) { animation-delay: 315ms; }
+.vault-grid > :nth-child(n+9) { animation-delay: 360ms; }
 
-/* 홈: 선택한 날 일정이 바뀔 때 */
-.schedule-item { animation: aFadeUp var(--dur) var(--ease-out) backwards; }
+/* ── E. 학생 목록: 왼쪽에서 한 줄씩 ── */
+.screen > .student-card { animation: aRowIn .3s var(--ease-push) backwards; }
+.screen > .student-card:nth-child(4) { animation-delay: 60ms; }
+.screen > .student-card:nth-child(5) { animation-delay: 120ms; }
+.screen > .student-card:nth-child(6) { animation-delay: 180ms; }
+.screen > .student-card:nth-child(7) { animation-delay: 240ms; }
+.screen > .student-card:nth-child(8) { animation-delay: 300ms; }
+.screen > .student-card:nth-child(n+9) { animation-delay: 360ms; }
 
-/* 팝업: 배경은 서서히, 시트는 폰에서 아래에서 올라오고 넓은 화면에서는 가운데서 커진다.
-   (끝난 뒤에 효과의 마지막 상태가 남지 않도록 backwards만 쓴다) */
+/* ── F. 오늘 일정: 위에서 톡 ── */
+.schedule-item { animation: aDropIn .3s var(--ease-push) backwards; }
+.schedule-item:nth-child(3) { animation-delay: 90ms; }
+.schedule-item:nth-child(4) { animation-delay: 180ms; }
+.schedule-item:nth-child(n+5) { animation-delay: 240ms; }
+
+/* ── C. 팝업: 폰은 아래에서 튕기며 올라오고, 넓은 화면은 가운데서 커진다 ── */
 div[style*="position: fixed"][style*="z-index: 200"] { animation: aFadeIn .2s ease-out backwards; }
-div[style*="position: fixed"][style*="z-index: 200"] > div { animation: aSheetUp .3s var(--ease-out) backwards; }
+div[style*="position: fixed"][style*="z-index: 200"] > div { animation: aSheetUp .42s var(--ease-spring) backwards; }
+@media (max-width: 599px) {
+  /* 튕길 때 시트 아래가 비어 보이지 않도록 같은 색으로 아래를 채운다 */
+  div[style*="position: fixed"][style*="z-index: 200"] > div { box-shadow: 0 60px 0 0 var(--bg2); }
+}
 @media (min-width: 600px) {
-  div[style*="position: fixed"][style*="z-index: 200"] > div { animation: aPop .22s var(--ease-out) backwards; }
+  div[style*="position: fixed"][style*="z-index: 200"] > div { animation: aPop .24s var(--ease-pop) backwards; }
 }
 
-/* 사진 크게 보기 */
+/* ── I. 사진 크게 보기: 가운데서 확대 ── */
 div[style*="position: fixed"][style*="z-index: 300"] { animation: aFadeIn .2s ease-out backwards; }
+div[style*="position: fixed"][style*="z-index: 300"] > img { animation: aZoomIn .28s var(--ease-push) backwards; }
 
-/* "✓ 저장됨" 알림: 나타났다가 스스로 사라진다 (1.5초 뒤 화면에서 빠지기 전에 끝남) */
+/* ── G. "✓ 저장됨" 알림: 톡 튀어나왔다가 위로 사라진다 (1.5초 뒤 화면에서 빠지기 전에 끝남) ── */
 div[style*="position: fixed"][style*="z-index: 250"] { animation: aToast 1.4s var(--ease-out) both; }
+
+/* ── H. 달력 날짜 고르기: 고른 날짜에 파동 ── */
+.cal-day.selected { position: relative; z-index: 1; animation: aRing .55s ease-out; }
 
 /* 누르는 느낌 */
 .btn-primary, .btn-secondary, .btn-dashed, .student-card, .lesson-card-main, .sub-card, .vault-grid > * {
