@@ -7,6 +7,18 @@ export const TRASH_DAYS = 30;
 const DAY = 86400000;
 
 const uid = () => auth.currentUser.uid;
+
+// 같은 학생에 대한 같은 작업이 이미 진행 중이면 다시 시작하지 않는다 (빠르게 두 번 눌러도 한 번만)
+const running = new Set();
+async function once(key, fn) {
+  if (running.has(key)) return false;
+  running.add(key);
+  try {
+    return await fn();
+  } finally {
+    running.delete(key);
+  }
+}
 const P = (...s) => ["trainers", uid(), ...s];
 const sRef = (id) => doc(db, ...P("students", id));
 const sLogs = (id) => collection(db, ...P("students", id, "lessonLogs"));
@@ -60,7 +72,10 @@ async function rollbackTrash(id) {
 }
 
 // 학생 + 레슨 기록을 휴지통으로. 휴지통에 다 복사된 뒤에만 원래 자리에서 지운다.
-export async function moveStudentToTrash(studentId) {
+export function moveStudentToTrash(studentId) {
+  return once(`move:${studentId}`, () => doMoveToTrash(studentId));
+}
+async function doMoveToTrash(studentId) {
   const s = await getDoc(sRef(studentId));
   if (!s.exists()) return false;
   const logs = await getDocs(sLogs(studentId));
@@ -93,7 +108,10 @@ export async function moveStudentToTrash(studentId) {
 }
 
 // 휴지통에서 되살리기: 이미 같은 학생이 있어도 휴지통 내용으로 덮어쓴다
-export async function restoreStudent(studentId) {
+export function restoreStudent(studentId) {
+  return once(`restore:${studentId}`, () => doRestore(studentId));
+}
+async function doRestore(studentId) {
   const t = await getDoc(tRef(studentId));
   if (!t.exists()) return false;
   const { deletedAt, purgeAfter, logCount, ...rest } = t.data();
@@ -107,7 +125,10 @@ export async function restoreStudent(studentId) {
 }
 
 // 휴지통에서 완전히 삭제 (원래 자리에 남았을 수 있는 기록까지 함께)
-export async function purgeStudent(studentId) {
+export function purgeStudent(studentId) {
+  return once(`purge:${studentId}`, () => doPurge(studentId));
+}
+async function doPurge(studentId) {
   const logs = await getDocs(tLogs(studentId));
   await deleteDocs(logs.docs.map((d) => d.ref));
   await deleteDoc(tRef(studentId));

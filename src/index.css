@@ -608,7 +608,7 @@ div[style*="position: fixed"][style*="z-index: 250"] { animation: nToast calc(2.
   div[style*="position: fixed"][style*="z-index: 250"] { animation: none !important; }
 }
 
-/* AURA-LESSON v4: 수업 중 기록(지난 과제 확인, 과제 목록 포함) / 학생 선택 / 설정의 수업 항목 / 학생 목록의 관리 신호 / 학생 상세의 과제 이행 카드 / 설정의 휴지통 배치.
+/* AURA-LESSON v6: 수업 중 기록(지난 과제 확인, 과제 목록 포함) / 학생 선택 / 설정의 수업 항목 / 학생 목록의 관리 신호 / 학생 상세의 과제 이행 카드 / 설정의 휴지통 배치.
    폭 3구간(AURA-RESPONSIVE)과 같은 기준: 800px 이상이면 두 칸, 1024px 이상 + 마우스면 키보드 번호 표시. */
 
 /* ── 수업 중 기록 ── */
@@ -742,6 +742,14 @@ div[style*="position: fixed"][style*="z-index: 250"] { animation: nToast calc(2.
 .trash-btn { font: inherit; font-size: 12px; padding: 7px 12px; border-radius: 12px; border: .5px solid var(--border2); background: transparent; color: var(--accent); cursor: pointer; white-space: nowrap; }
 .trash-btn.d { color: #e07b6a; }
 .trash-btn:disabled { opacity: .45; cursor: default; }
+
+/* ── 학생 목록: 휴지통 버튼, 삭제 확인, 되돌리기 안내 ── */
+.stu-del { flex-shrink: 0; width: 40px; height: 40px; margin: -6px -8px -6px -2px; display: flex; align-items: center; justify-content: center; appearance: none; background: none; border: none; border-radius: 12px; color: var(--text3); cursor: pointer; transition: background-color .15s, color .15s; }
+.stu-del:hover, .stu-del:focus-visible { background: rgba(224,123,106,.14); color: #e07b6a; outline: none; }
+.btn-primary.trash-confirm { background: #e07b6a; color: #0e0e12; }
+.undo-toast { position: fixed; left: 0; right: 0; margin: 0 auto; width: fit-content; max-width: calc(100vw - 32px); bottom: calc(86px + env(safe-area-inset-bottom, 0px)); z-index: 240; display: flex; align-items: center; gap: 14px; background: #f0eee8; color: #0e0e12; font-size: 13px; padding: 10px 10px 10px 16px; border-radius: 18px; animation: nRise calc(.35s * var(--speed, 1)) cubic-bezier(.22, 1, .36, 1) both; }
+.undo-toast button { appearance: none; border: none; font: inherit; font-size: 13px; font-weight: 600; color: #8a6a2c; background: rgba(0,0,0,.07); border-radius: 12px; padding: 7px 13px; cursor: pointer; white-space: nowrap; }
+@media (min-width: 800px) { .undo-toast { bottom: 28px; } }
 
 /* ── 화면 진입 효과 (움직임 블록의 이름을 그대로 쓴다) ── */
 html[data-entering][data-screen="lessonRecord"] .screen > :where(:not(.nav-bar):not(.vault-grid):not(.student-card):not([style*="position: fixed"])) { animation: nRiseSkew calc(.6s * var(--speed, 1)) cubic-bezier(.22, 1, .36, 1) backwards; }

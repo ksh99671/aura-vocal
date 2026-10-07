@@ -3,7 +3,7 @@ import { db } from "../firebase";
 import { purgeExpiredTrash } from "./trash";
 
 // 앱을 새로 올릴 때마다 올린다. 관리자 프로그램이 "어느 버전을 쓰는지" 볼 때 쓴다.
-export const APP_VERSION = "v38";
+export const APP_VERSION = "v39";
 
 export function platformOf(ua = typeof navigator !== "undefined" ? navigator.userAgent : "") {
   const dev = /iPhone/.test(ua) ? "iPhone" : /iPad/.test(ua) ? "iPad" : /Android/.test(ua) ? "Android" : /Macintosh/.test(ua) ? "Mac" : /Windows/.test(ua) ? "Windows" : /Linux/.test(ua) ? "Linux" : "기타";

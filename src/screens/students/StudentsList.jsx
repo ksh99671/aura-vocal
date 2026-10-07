@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import NavBar from "../../components/NavBar";
 import { useStudents, useCategories } from "../../hooks/useFirestore";
 import { useStudentSignals } from "../../hooks/useStudentSignals";
 import { groupBySignals, signalTags } from "../../lib/studentSignals";
+import { moveStudentToTrash, restoreStudent, TRASH_DAYS } from "../../lib/trash";
 
 const PRESET_COLORS = ["#c9a96e","#a78bda","#5ec4a0","#e07b6a","#6ab0e0","#e0a06a"];
 
@@ -84,6 +85,52 @@ function CategoryModal({ categories, onAdd, onDelete, onClose }) {
   );
 }
 
+function TrashIcon() {
+  return (
+    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M4 7h16" />
+      <path d="M10 11v6M14 11v6" />
+      <path d="M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12" />
+      <path d="M9 7V4h6v3" />
+    </svg>
+  );
+}
+
+// 학생을 휴지통으로 옮기기 전에 한 번 더 확인한다
+function TrashConfirm({ student, busy, error, onCancel, onConfirm }) {
+  useEffect(() => {
+    const onKey = (e) => { if (e.key === "Escape" && !busy) onCancel(); };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onCancel, busy]);
+  return (
+    <div style={{
+      position:"fixed", inset:0, background:"rgba(0,0,0,0.6)",
+      display:"flex", alignItems:"flex-end", justifyContent:"center", zIndex:200,
+    }} onClick={busy ? undefined : onCancel}>
+      <div role="dialog" aria-label="학생 삭제 확인" style={{
+        background:"var(--bg2)", borderRadius:"20px 20px 0 0",
+        padding:"24px 22px 34px", width:"100%", maxWidth:420,
+        border:"0.5px solid var(--border2)",
+      }} onClick={e => e.stopPropagation()}>
+        <p style={{fontSize:16, fontWeight:600, color:"var(--text1)", lineHeight:1.5}}>
+          {student.name} 학생을<br />휴지통으로 옮길까요?
+        </p>
+        <p style={{fontSize:12.5, color:"var(--text2)", lineHeight:1.7, marginTop:10}}>
+          레슨 기록도 함께 옮겨져요. {TRASH_DAYS}일 안에는 설정 → 휴지통에서 되살릴 수 있고, 그 뒤에는 완전히 지워져요.
+        </p>
+        {error && <p className="error-text" style={{marginTop:10}}>{error}</p>}
+        <div className="btn-row" style={{marginTop:18}}>
+          <button className="btn-secondary" disabled={busy} onClick={onCancel}>취소</button>
+          <button className="btn-primary trash-confirm" style={{flex:2}} disabled={busy} onClick={onConfirm}>
+            {busy ? "옮기는 중..." : "휴지통으로 이동"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function StudentsList({ go }) {
   const { students, addStudent } = useStudents();
   const { categories, addCategory, deleteCategory } = useCategories();
@@ -93,6 +140,43 @@ export default function StudentsList({ go }) {
   const [newName, setNewName] = useState("");
   const [newCategory, setNewCategory] = useState("");
   const [saving, setSaving] = useState(false);
+  const [askDel, setAskDel] = useState(null);   // 휴지통으로 옮길지 확인 중인 학생
+  const [delBusy, setDelBusy] = useState(false);
+  const [delErr, setDelErr] = useState("");
+  const [undo, setUndo] = useState(null);       // 방금 휴지통으로 옮긴 학생 (되돌리기 안내용)
+
+  const trashing = useRef(false);
+  const confirmTrash = async () => {
+    if (!askDel || trashing.current) return;
+    trashing.current = true;
+    setDelBusy(true);
+    setDelErr("");
+    try {
+      await moveStudentToTrash(askDel.id);
+      setUndo({ id: askDel.id, name: askDel.name });
+      setAskDel(null);
+    } catch (e) {
+      console.error(e);
+      setDelErr("삭제하지 못했어요: " + (e.code || e.message));
+    }
+    trashing.current = false;
+    setDelBusy(false);
+  };
+  const undoTrash = async () => {
+    const u = undo;
+    setUndo(null);
+    try {
+      await restoreStudent(u.id);
+    } catch (e) {
+      console.error(e);
+      alert("되돌리지 못했어요. 설정 → 휴지통에서 되살릴 수 있어요.");
+    }
+  };
+  useEffect(() => {
+    if (!undo) return;
+    const t = setTimeout(() => setUndo(null), 7000);
+    return () => clearTimeout(t);
+  }, [undo]);
 
   const filtered = activeFilter
     ? students.filter(s => s.category === activeFilter)
@@ -126,6 +210,14 @@ export default function StudentsList({ go }) {
             background:`${cat.color}22`, color:cat.color,
           }}>{cat.name}</span>
         )}
+        <button
+          className="stu-del"
+          title="휴지통"
+          aria-label={`${s.name} 학생을 휴지통으로 옮기기`}
+          onClick={(e) => { e.stopPropagation(); setDelErr(""); setAskDel(s); }}
+        >
+          <TrashIcon />
+        </button>
       </div>
     );
   };
@@ -242,6 +334,23 @@ export default function StudentsList({ go }) {
           onDelete={deleteCategory}
           onClose={() => setShowCatModal(false)}
         />
+      )}
+
+      {askDel && (
+        <TrashConfirm
+          student={askDel}
+          busy={delBusy}
+          error={delErr}
+          onCancel={() => { setAskDel(null); setDelErr(""); }}
+          onConfirm={confirmTrash}
+        />
+      )}
+
+      {undo && (
+        <div className="undo-toast" role="status">
+          <span>{undo.name} 학생을 휴지통으로 옮겼어요</span>
+          <button onClick={undoTrash}>되돌리기</button>
+        </div>
       )}
 
       <NavBar go={go} active="studentSelect" />
