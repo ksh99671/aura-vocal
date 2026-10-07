@@ -8,6 +8,8 @@ import AudioRecord from "./screens/self/AudioRecord";
 import SymptomSelect from "./screens/self/SymptomSelect";
 import SelfResult from "./screens/self/SelfResult";
 import LessonHub from "./screens/lesson/LessonHub";
+import LessonStart from "./screens/lesson/LessonStart";
+import LessonRecord from "./screens/lesson/LessonRecord";
 import StudentSelect from "./screens/lesson/StudentSelect";
 import Checklist from "./screens/lesson/Checklist";
 import LessonResult from "./screens/lesson/LessonResult";
@@ -24,7 +26,7 @@ const SCREENS = {
   home: Home, settings: Settings,
   selfHub: SelfHub, audioRecord: AudioRecord,
   symptomSelect: SymptomSelect, selfResult: SelfResult,
-  lessonHub: LessonHub, studentSelect: StudentSelect,
+  lessonHub: LessonStart, studentSelect: LessonStart, lessonRecord: LessonRecord,
   checklist: Checklist, lessonResult: LessonResult,
   library: VaultList, vaultNote: VaultNote, vaultEdit: VaultEdit, history: History,
   studentsList: StudentsList, studentDetail: StudentDetail, lessonDetail: LessonDetail,

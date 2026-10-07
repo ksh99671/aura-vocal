@@ -607,3 +607,146 @@ div[style*="position: fixed"][style*="z-index: 250"] { animation: nToast calc(2.
   *, *::before, *::after { animation-duration: .01ms !important; animation-delay: 0s !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; scroll-behavior: auto !important; }
   div[style*="position: fixed"][style*="z-index: 250"] { animation: none !important; }
 }
+
+/* AURA-LESSON v4: 수업 중 기록(지난 과제 확인, 과제 목록 포함) / 학생 선택 / 설정의 수업 항목 / 학생 목록의 관리 신호 / 학생 상세의 과제 이행 카드 배치.
+   폭 3구간(AURA-RESPONSIVE)과 같은 기준: 800px 이상이면 두 칸, 1024px 이상 + 마우스면 키보드 번호 표시. */
+
+/* ── 수업 중 기록 ── */
+.rec-head { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 14px; }
+.rec-sub { font-size: 12px; color: var(--text2); }
+.rec-auto { font-size: 10px; color: var(--text3); }
+.rec-cols { display: block; }
+/* 폰: 오른쪽 칸을 풀어서(display: contents) 저장 버튼이 기록 화면 전체에서 탭바 위에 붙어 다닌다 */
+.rec-right { display: contents; }
+.rec-save { position: sticky; bottom: calc(76px + env(safe-area-inset-bottom, 0px)); z-index: 5; padding: 12px 0 4px; background: linear-gradient(to top, var(--bg) 72%, transparent); }
+.rec-lbl { font-size: 10px; letter-spacing: .08em; text-transform: uppercase; color: var(--text3); margin: 14px 0 8px; }
+.rec-chips { display: flex; gap: 7px; flex-wrap: wrap; margin-bottom: 4px; }
+.rec-chip { display: inline-flex; align-items: center; gap: 6px; height: 36px; padding: 0 14px; border-radius: 18px; font: inherit; font-size: 13px; font-weight: 500; border: .5px solid; cursor: pointer; transition: transform .12s, background-color .2s; }
+.rec-chip:active { transform: scale(.95); }
+.rec-chip i { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+.rec-chip-add { border-style: dashed; color: var(--text2); border-color: var(--border2); background: transparent; padding: 0 14px; }
+.rec-kbd { display: none; font: inherit; font-size: 10px; opacity: .7; border: .5px solid currentColor; border-radius: 4px; padding: 0 5px; line-height: 15px; }
+.rec-empty { font-size: 12px; color: var(--text3); padding: 18px 0; text-align: center; }
+.rec-card { background: var(--bg2); border: .5px solid var(--border2); border-radius: 14px; padding: 2px 14px; box-shadow: var(--shadow); }
+.rec-row { padding: 12px 0; border-bottom: .5px solid var(--border); display: grid; grid-template-columns: 1fr auto; grid-template-areas: "main x" "status status" "note note"; gap: 9px 8px; align-items: center; animation: nDrop calc(.5s * var(--speed, 1)) cubic-bezier(.3, .8, .4, 1) backwards; }
+.rec-row:last-child { border-bottom: none; }
+.rec-main { grid-area: main; display: flex; align-items: center; gap: 8px; min-width: 0; }
+.rec-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.rec-name { font-size: 14px; font-weight: 500; color: var(--text1); flex-shrink: 0; }
+.rec-song { flex: 1; min-width: 0; font: inherit; font-size: 12px; color: #a78bda; background: transparent; border: none; border-bottom: .5px solid var(--border2); outline: none; padding: 3px 2px; }
+.rec-note { grid-area: note; font: inherit; font-size: 13px; color: var(--text1); background: transparent; border: none; border-bottom: .5px solid var(--border2); outline: none; padding: 5px 2px; min-width: 0; }
+.rec-song::placeholder, .rec-note::placeholder { color: var(--text3); }
+.rec-status { grid-area: status; display: flex; gap: 6px; white-space: nowrap; }
+.rec-st { font: inherit; font-size: 12px; padding: 7px 14px; border-radius: 13px; border: .5px solid var(--border2); background: transparent; color: var(--text2); cursor: pointer; white-space: nowrap; flex-shrink: 0; }
+.rec-st.on[data-k="good"] { background: rgba(94,196,160,.15); border-color: rgba(94,196,160,.6); color: #5ec4a0; }
+.rec-st.on[data-k="ok"] { background: var(--bg3); border-color: var(--text2); color: var(--text1); }
+.rec-st.on[data-k="fix"] { background: rgba(224,123,106,.15); border-color: rgba(224,123,106,.6); color: #e07b6a; }
+.rec-x { grid-area: x; background: none; border: none; color: var(--text3); font-size: 14px; cursor: pointer; padding: 4px 6px; }
+.rec-prev { background: var(--bg2); border: .5px solid var(--border2); border-radius: 14px; padding: 12px 14px; margin-top: 14px; box-shadow: var(--shadow); }
+.rec-prev-body { font-size: 12px; line-height: 1.7; color: var(--text2); white-space: pre-line; margin-top: 6px; }
+.rec-link { font: inherit; font-size: 12px; color: var(--accent); background: none; border: none; cursor: pointer; padding: 0; margin-top: 8px; }
+.rec-textarea { width: 100%; font: inherit; font-size: 14px; line-height: 1.7; color: var(--text1); background: var(--bg3); border: .5px solid var(--border2); border-radius: 12px; padding: 11px 13px; outline: none; resize: vertical; }
+.rec-kh { display: none; font-size: 11px; color: var(--text3); text-align: center; margin-top: 8px; }
+.rec-first { margin-bottom: 4px; }
+
+/* 지난 과제 확인: 했어요 / 조금 했어요 / 못 했어요 */
+.rec-hwcheck { background: var(--bg2); border: .5px solid var(--border2); border-radius: 14px; padding: 12px 14px; margin-bottom: 4px; box-shadow: var(--shadow); }
+.rec-hwhead { display: flex; justify-content: space-between; align-items: center; font-size: 12px; color: var(--text2); margin-bottom: 2px; }
+.rec-hwhead b { font-size: 13px; font-weight: 500; color: var(--text1); }
+.rec-hwitem { padding: 11px 0; }
+.rec-hwitem + .rec-hwitem { border-top: .5px solid var(--border); }
+.rec-hwtext { font-size: 14px; color: var(--text1); margin-bottom: 8px; line-height: 1.5; }
+.rec-hw3 { display: flex; gap: 6px; }
+.hw3 { flex: 1; font: inherit; font-size: 12px; padding: 8px 4px; border-radius: 11px; border: .5px solid var(--border2); background: transparent; color: var(--text2); cursor: pointer; white-space: nowrap; }
+.hw3.on[data-k="done"] { background: rgba(94,196,160,.15); border-color: rgba(94,196,160,.6); color: #5ec4a0; }
+.hw3.on[data-k="partial"] { background: rgba(232,176,74,.15); border-color: rgba(232,176,74,.6); color: #e8b04a; }
+.hw3.on[data-k="skip"] { background: rgba(224,123,106,.15); border-color: rgba(224,123,106,.6); color: #e07b6a; }
+.rec-hwsum { display: flex; justify-content: space-between; align-items: center; gap: 8px; font-size: 12px; color: var(--text2); padding-top: 10px; border-top: .5px solid var(--border); }
+.rec-hwsum b { color: var(--accent); font-weight: 500; white-space: nowrap; }
+
+/* 다음 과제: 한 줄에 하나 + 지난번에 못 한 것 제안 */
+.rec-sugg { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; margin-bottom: 8px; }
+.rec-suggl { font-size: 11px; color: var(--text3); width: 100%; }
+.rec-sugg button { font: inherit; font-size: 12px; padding: 6px 12px; border-radius: 14px; border: .5px dashed var(--accent); color: var(--accent); background: transparent; cursor: pointer; text-align: left; }
+.rec-hwrow { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; }
+.rec-hw-in { flex: 1; min-width: 0; font: inherit; font-size: 14px; color: var(--text1); background: var(--bg3); border: .5px solid var(--border2); border-radius: 12px; padding: 10px 13px; outline: none; }
+.rec-hw-in:focus { border-color: var(--accent); }
+.rec-hw-in::placeholder { color: var(--text3); }
+
+/* ── 설정: 수업 항목 ── */
+.set-cols { display: block; }
+.set-card { background: var(--bg2); border: .5px solid var(--border2); border-radius: 14px; padding: 2px 12px; box-shadow: var(--shadow); }
+.set-item { border-bottom: .5px solid var(--border); }
+.set-item:last-child { border-bottom: none; }
+.set-row { display: flex; align-items: center; gap: 10px; padding: 11px 0; }
+.set-move { display: flex; flex-direction: column; gap: 1px; }
+.set-move button { background: none; border: none; color: var(--text3); font-size: 9px; line-height: 1.1; cursor: pointer; padding: 1px 4px; }
+.set-move button:disabled { opacity: .25; cursor: default; }
+.set-dot { width: 18px; height: 18px; border-radius: 50%; border: none; cursor: pointer; flex-shrink: 0; box-shadow: 0 0 0 2px var(--border2); }
+.set-name { flex: 1; min-width: 0; font: inherit; font-size: 14px; color: var(--text1); background: transparent; border: none; border-bottom: .5px solid transparent; outline: none; padding: 3px 0; }
+.set-name:focus { border-bottom-color: var(--accent); }
+.set-toggle { position: relative; display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--text2); cursor: pointer; white-space: nowrap; }
+.set-toggle input { position: absolute; opacity: 0; width: 100%; height: 100%; margin: 0; cursor: pointer; }
+.set-sw { width: 30px; height: 17px; border-radius: 9px; background: var(--border2); position: relative; transition: background-color .2s; }
+.set-sw::after { content: ''; position: absolute; top: 2px; left: 2px; width: 13px; height: 13px; border-radius: 50%; background: var(--text1); transition: transform .2s; }
+.set-toggle input:checked + .set-sw { background: var(--accent); }
+.set-toggle input:checked + .set-sw::after { transform: translateX(13px); background: #0e0e12; }
+.set-del { background: none; border: none; color: var(--text3); font-size: 14px; cursor: pointer; padding: 4px 6px; }
+.set-colors { display: flex; gap: 9px; padding: 2px 0 12px 34px; }
+.set-colors button { width: 24px; height: 24px; border-radius: 50%; border: 2px solid transparent; cursor: pointer; }
+.set-colors button.on { border-color: var(--text1); }
+.set-preview { background: var(--bg2); border: .5px solid var(--border2); border-radius: 14px; padding: 14px; margin-top: 16px; box-shadow: var(--shadow); }
+
+/* ── 학생 목록: 관리가 필요한 학생 ── */
+.sig-grp { font-size: 11px; letter-spacing: .06em; color: var(--text3); margin: 16px 0 8px; }
+.sig-tags { display: flex; gap: 5px; flex-wrap: wrap; margin-top: 5px; }
+.sig-tag { font-size: 11px; padding: 2px 9px; border-radius: 10px; background: var(--bg3); color: var(--text2); white-space: nowrap; }
+.sig-tag.bad { background: rgba(224,123,106,.15); color: #e07b6a; }
+.sig-tag.warn { background: rgba(232,176,74,.15); color: #e8b04a; }
+.sig-tag.good { background: rgba(94,196,160,.15); color: #5ec4a0; }
+
+/* ── 학생 상세: 과제 이행 카드 ── */
+.hwcard { margin-bottom: 16px; }
+.hwcard-head { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
+.hwcard-rate { font-size: 13px; font-weight: 500; color: var(--accent); white-space: nowrap; }
+.hwcard .sig-tags { margin: 8px 0 0; }
+.hwcard-dots { display: flex; gap: 4px; margin: 14px 0 6px; }
+.hwcard-dot { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 6px; appearance: none; background: none; border: none; font: inherit; font-size: 11px; color: var(--text3); cursor: pointer; padding: 4px 0; }
+.hw-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; margin-right: 2px; }
+.hw-dot.big { width: 20px; height: 20px; margin: 0; }
+.hw-dot.good { background: #5ec4a0; }
+.hw-dot.mid { background: #e8b04a; }
+.hw-dot.low { background: #e07b6a; }
+.hw-dot.pending { background: var(--border2); }
+.hw-dot.none { background: transparent; border: 1px solid var(--border2); }
+.hwcard-legend { font-size: 11px; color: var(--text3); line-height: 1.6; }
+.hwcard-sub { font-size: 12px; color: var(--text2); margin: 16px 0 4px; }
+.hwcard-item { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 9px 0; border-top: .5px solid var(--border); font-size: 13px; color: var(--text1); line-height: 1.5; }
+.hwcard-st { font-size: 11px; padding: 2px 9px; border-radius: 10px; white-space: nowrap; background: var(--bg3); color: var(--text2); flex-shrink: 0; }
+.hwcard-st.done { background: rgba(94,196,160,.15); color: #5ec4a0; }
+.hwcard-st.partial { background: rgba(232,176,74,.15); color: #e8b04a; }
+.hwcard-st.skip { background: rgba(224,123,106,.15); color: #e07b6a; }
+.hwcard-note { font-size: 11px; color: var(--text3); margin-top: 8px; line-height: 1.6; }
+
+/* ── 화면 진입 효과 (움직임 블록의 이름을 그대로 쓴다) ── */
+html[data-entering][data-screen="lessonRecord"] .screen > :where(:not(.nav-bar):not(.vault-grid):not(.student-card):not([style*="position: fixed"])) { animation: nRiseSkew calc(.6s * var(--speed, 1)) cubic-bezier(.22, 1, .36, 1) backwards; }
+html[data-screen="lessonHub"] .screen > .student-card:nth-child(odd)  { animation: nFanL calc(.6s * var(--speed, 1)) cubic-bezier(.22, 1, .36, 1) backwards; }
+html[data-screen="lessonHub"] .screen > .student-card:nth-child(even) { animation: nFanR calc(.6s * var(--speed, 1)) cubic-bezier(.22, 1, .36, 1) backwards; animation-delay: calc(90ms * var(--speed, 1)); }
+
+/* ── 넓은 화면 ── */
+@media (min-width: 800px) {
+  .rec-cols { display: grid; grid-template-columns: minmax(0, 1.7fr) minmax(0, 1fr); gap: 28px; align-items: start; }
+  .rec-right { display: block; position: sticky; top: 24px; }
+  .rec-right > .rec-lbl:first-child { margin-top: 0; }
+  .rec-save { bottom: 12px; padding-bottom: 0; background: linear-gradient(to top, var(--bg) 78%, transparent); }
+  .rec-prev { margin-top: 0; }
+  .rec-chip { height: 30px; font-size: 12px; padding: 0 12px; }
+  .rec-row { grid-template-columns: minmax(130px, 200px) minmax(0, 1fr) auto auto; grid-template-areas: "main note status x"; padding: 9px 0; gap: 10px; }
+  .rec-st { font-size: 11px; padding: 5px 11px; }
+  .rec-kh { display: block; }
+  .set-cols { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); gap: 24px; align-items: start; }
+  .set-preview { margin-top: 0; }
+}
+@media (min-width: 1024px) and (hover: hover) and (pointer: fine) {
+  .rec-kbd { display: inline-block; }
+}

@@ -4,6 +4,7 @@ import NavBar from "../../components/NavBar";
 import { useLessonLogs, useCategories } from "../../hooks/useFirestore";
 import { doc, updateDoc, deleteDoc } from "firebase/firestore";
 import { db, auth } from "../../firebase";
+import HomeworkCard, { HwDot } from "../../components/HomeworkCard";
 
 const todayStr = () => {
   const d = new Date();
@@ -220,6 +221,8 @@ export default function StudentDetail({ go, params }) {
         )}
       </div>
 
+      <HomeworkCard logs={logs} baseCount={baseCount} student={student} go={go} />
+
       <div className="section-divider" />
 
       {/* 레슨 기록 */}
@@ -306,7 +309,7 @@ export default function StudentDetail({ go, params }) {
                 <p style={{flex:1, fontSize:12, fontWeight:500, color:"var(--text1)", lineHeight:1.5}}>
                   {log.memo ? (log.memo.length > 28 ? log.memo.slice(0, 28) + "..." : log.memo) : "레슨 기록"}
                 </p>
-                <span style={{fontSize:10, color:"var(--accent)", flexShrink:0, fontWeight:500}}>{lessonNo}회</span>
+                <HwDot log={log} /><span style={{fontSize:10, color:"var(--accent)", flexShrink:0, fontWeight:500}}>{lessonNo}회</span>
                 <span style={{fontSize:12, color:"var(--text3)", flexShrink:0}}>›</span>
               </div>
             );
@@ -323,7 +326,7 @@ export default function StudentDetail({ go, params }) {
       )}
 
       <div style={{height:12}} />
-      <button className="btn-primary" onClick={() => go("checklist", { student })}>
+      <button className="btn-primary" onClick={() => go("lessonRecord", { student })}>
         레슨 시작 →
       </button>
 

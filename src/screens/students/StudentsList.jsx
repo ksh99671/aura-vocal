@@ -1,6 +1,8 @@
 import { useState } from "react";
 import NavBar from "../../components/NavBar";
 import { useStudents, useCategories } from "../../hooks/useFirestore";
+import { useStudentSignals } from "../../hooks/useStudentSignals";
+import { groupBySignals, signalTags } from "../../lib/studentSignals";
 
 const PRESET_COLORS = ["#c9a96e","#a78bda","#5ec4a0","#e07b6a","#6ab0e0","#e0a06a"];
 
@@ -98,6 +100,36 @@ export default function StudentsList({ go }) {
 
   const getCat = (catId) => categories.find(c => c.id === catId);
 
+  // 학생마다 과제 이행과 마지막 레슨을 보고 "관리가 필요한 학생"을 위로 올린다
+  const { signals, ready } = useStudentSignals(students);
+  const grouped = ready ? groupBySignals(filtered, signals) : null;
+
+  const renderCard = (s) => {
+    const cat = getCat(s.category);
+    const tags = signals[s.id] ? signalTags(signals[s.id]) : [];
+    return (
+      <div key={s.id} className="student-card" onClick={() => go("studentDetail", { student: s })}>
+        <div className="student-avatar">{s.name.slice(-1)}</div>
+        <div style={{flex:1, minWidth:0}}>
+          <p className="student-name">{s.name}</p>
+          {tags.length > 0 ? (
+            <div className="sig-tags">
+              {tags.map(t => <span key={t.text} className={`sig-tag ${t.tone}`}>{t.text}</span>)}
+            </div>
+          ) : (
+            <p className="student-sub">탭해서 상세 보기</p>
+          )}
+        </div>
+        {cat && (
+          <span style={{
+            fontSize:10, padding:"2px 8px", borderRadius:10, fontWeight:500,
+            background:`${cat.color}22`, color:cat.color,
+          }}>{cat.name}</span>
+        )}
+      </div>
+    );
+  };
+
   const handleAddStudent = async () => {
     if (!newName.trim()) return;
     setSaving(true);
@@ -146,24 +178,18 @@ export default function StudentsList({ go }) {
           <p style={{fontSize:12, color:"var(--text3)", marginTop:4}}>아래 버튼으로 추가해보세요</p>
         </div>
       ) : (
-        filtered.map(s => {
-          const cat = getCat(s.category);
-          return (
-            <div key={s.id} className="student-card" onClick={() => go("studentDetail", { student: s })}>
-              <div className="student-avatar">{s.name.slice(-1)}</div>
-              <div style={{flex:1}}>
-                <p className="student-name">{s.name}</p>
-                <p className="student-sub">탭해서 상세 보기</p>
-              </div>
-              {cat && (
-                <span style={{
-                  fontSize:10, padding:"2px 8px", borderRadius:10, fontWeight:500,
-                  background:`${cat.color}22`, color:cat.color,
-                }}>{cat.name}</span>
-              )}
-            </div>
-          );
-        })
+        grouped ? (
+          <>
+            {grouped.attention.length > 0 && <p className="sig-grp">관리가 필요해요 · {grouped.attention.length}</p>}
+            {grouped.attention.map(renderCard)}
+            {grouped.attention.length > 0 && grouped.ok.length > 0 && <p className="sig-grp">잘하고 있어요 · {grouped.ok.length}</p>}
+            {grouped.ok.map(renderCard)}
+            {grouped.none.length > 0 && (grouped.attention.length > 0 || grouped.ok.length > 0) && <p className="sig-grp">아직 기록이 없어요 · {grouped.none.length}</p>}
+            {grouped.none.map(renderCard)}
+          </>
+        ) : (
+          filtered.map(renderCard)
+        )
       )}
 
       {/* 학생 추가 */}
