@@ -608,7 +608,7 @@ div[style*="position: fixed"][style*="z-index: 250"] { animation: nToast calc(2.
   div[style*="position: fixed"][style*="z-index: 250"] { animation: none !important; }
 }
 
-/* AURA-LESSON v4: 수업 중 기록(지난 과제 확인, 과제 목록 포함) / 학생 선택 / 설정의 수업 항목 / 학생 목록의 관리 신호 / 학생 상세의 과제 이행 카드 배치.
+/* AURA-LESSON v4: 수업 중 기록(지난 과제 확인, 과제 목록 포함) / 학생 선택 / 설정의 수업 항목 / 학생 목록의 관리 신호 / 학생 상세의 과제 이행 카드 / 설정의 휴지통 배치.
    폭 3구간(AURA-RESPONSIVE)과 같은 기준: 800px 이상이면 두 칸, 1024px 이상 + 마우스면 키보드 번호 표시. */
 
 /* ── 수업 중 기록 ── */
@@ -727,6 +727,21 @@ div[style*="position: fixed"][style*="z-index: 250"] { animation: nToast calc(2.
 .hwcard-st.partial { background: rgba(232,176,74,.15); color: #e8b04a; }
 .hwcard-st.skip { background: rgba(224,123,106,.15); color: #e07b6a; }
 .hwcard-note { font-size: 11px; color: var(--text3); margin-top: 8px; line-height: 1.6; }
+
+/* ── 설정: 휴지통 ── */
+.trash-sec { margin-top: 28px; }
+.trash-count { font-size: 12px; color: var(--text3); }
+.trash-note { font-size: 12px; color: var(--text2); line-height: 1.6; margin-bottom: 10px; }
+.trash-empty { font-size: 12px; color: var(--text3); padding: 14px 0; }
+.trash-row { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 10px; padding: 12px 0; border-bottom: .5px solid var(--border); }
+.trash-row:last-child { border-bottom: none; }
+.trash-main { flex: 1 1 150px; min-width: 0; }
+.trash-name { font-size: 14px; color: var(--text1); }
+.trash-sub { font-size: 11px; color: var(--text3); margin-top: 2px; }
+.trash-btns { display: flex; gap: 6px; flex-shrink: 0; }
+.trash-btn { font: inherit; font-size: 12px; padding: 7px 12px; border-radius: 12px; border: .5px solid var(--border2); background: transparent; color: var(--accent); cursor: pointer; white-space: nowrap; }
+.trash-btn.d { color: #e07b6a; }
+.trash-btn:disabled { opacity: .45; cursor: default; }
 
 /* ── 화면 진입 효과 (움직임 블록의 이름을 그대로 쓴다) ── */
 html[data-entering][data-screen="lessonRecord"] .screen > :where(:not(.nav-bar):not(.vault-grid):not(.student-card):not([style*="position: fixed"])) { animation: nRiseSkew calc(.6s * var(--speed, 1)) cubic-bezier(.22, 1, .36, 1) backwards; }

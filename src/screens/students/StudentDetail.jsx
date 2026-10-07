@@ -4,6 +4,7 @@ import NavBar from "../../components/NavBar";
 import { useLessonLogs, useCategories } from "../../hooks/useFirestore";
 import { doc, updateDoc, deleteDoc } from "firebase/firestore";
 import { db, auth } from "../../firebase";
+import { moveStudentToTrash } from "../../lib/trash";
 import HomeworkCard, { HwDot } from "../../components/HomeworkCard";
 
 const todayStr = () => {
@@ -65,8 +66,14 @@ export default function StudentDetail({ go, params }) {
   };
 
   const deleteStudent = async () => {
-    if (!confirm(`${student.name} 학생을 삭제할까요?`)) return;
-    await deleteDoc(getRef());
+    if (!confirm(`${student.name} 학생을 휴지통으로 옮길까요?\n30일 안에 설정 → 휴지통에서 되살릴 수 있어요.`)) return;
+    try {
+      await moveStudentToTrash(student.id);
+    } catch (e) {
+      console.error(e);
+      alert("삭제하지 못했어요: " + (e.code || e.message));
+      return;
+    }
     go("studentsList");
   };
 

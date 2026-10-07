@@ -3,6 +3,7 @@ import NavBar from "../components/NavBar";
 import BackButton from "../components/BackButton";
 import { auth } from "../firebase";
 import { useLessonItems, ITEM_COLORS } from "../hooks/useLessonItems";
+import { useTrash, restoreStudent, purgeStudent, daysLeft, TRASH_DAYS } from "../lib/trash";
 
 function ItemRow({ item, index, last, onUpdate, onDelete, onMove }) {
   const [name, setName] = useState(item.name);
@@ -70,6 +71,33 @@ export default function Settings({ go, logOut, params }) {
   const [adding, setAdding] = useState(false);
   const [newName, setNewName] = useState("");
   const [newColor, setNewColor] = useState(ITEM_COLORS[0]);
+  const { items: trash } = useTrash();
+  const [busy, setBusy] = useState("");
+  const [trashErr, setTrashErr] = useState("");
+
+  const restore = async (t) => {
+    setBusy(t.id);
+    setTrashErr("");
+    try {
+      await restoreStudent(t.id);
+    } catch (e) {
+      console.error(e);
+      setTrashErr("되살리지 못했어요: " + (e.code || e.message));
+    }
+    setBusy("");
+  };
+  const purge = async (t) => {
+    if (!confirm(`"${t.name}" 학생과 레슨 기록을 지금 완전히 삭제할까요? 되돌릴 수 없어요.`)) return;
+    setBusy(t.id);
+    setTrashErr("");
+    try {
+      await purgeStudent(t.id);
+    } catch (e) {
+      console.error(e);
+      setTrashErr("삭제하지 못했어요: " + (e.code || e.message));
+    }
+    setBusy("");
+  };
 
   const submit = async () => {
     if (!newName.trim()) return;
@@ -178,6 +206,33 @@ export default function Settings({ go, logOut, params }) {
             컴퓨터에서는 키보드 1~9로 순서대로 추가돼요. "곡 입력"을 켠 항목만 곡 이름 칸이 나와요.
           </p>
         </div>
+      </div>
+
+      <div className="trash-sec">
+        <div className="section-header">
+          <p className="section-title">휴지통</p>
+          <span className="trash-count">{trash.length}명</span>
+        </div>
+        <p className="trash-note">삭제한 학생은 {TRASH_DAYS}일 동안 여기 보관돼요. 기간이 지나면 앱을 열 때 자동으로 완전히 지워져요.</p>
+        {trash.length === 0 ? (
+          <p className="trash-empty">휴지통이 비어 있어요</p>
+        ) : (
+          <div className="set-card">
+            {trash.map((t) => (
+              <div className="trash-row" key={t.id}>
+                <div className="trash-main">
+                  <p className="trash-name">{t.name}</p>
+                  <p className="trash-sub">레슨 기록 {t.logCount ?? 0}개 · {daysLeft(t)}일 뒤 완전히 삭제</p>
+                </div>
+                <div className="trash-btns">
+                  <button className="trash-btn" disabled={busy === t.id} onClick={() => restore(t)}>되살리기</button>
+                  <button className="trash-btn d" disabled={busy === t.id} onClick={() => purge(t)}>지금 삭제</button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+        {trashErr && <p className="error-text" style={{ marginTop: 10 }}>{trashErr}</p>}
       </div>
 
       <NavBar go={go} active="settings" />

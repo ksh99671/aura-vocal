@@ -3,6 +3,7 @@ import { Timestamp } from "firebase/firestore";
 import BackButton from "../../components/BackButton";
 import NavBar from "../../components/NavBar";
 import { useLessonLogs } from "../../hooks/useFirestore";
+import { logDeletion } from "../../lib/trash";
 
 const toInput = (ts) => {
   const d = ts?.toDate?.();
@@ -68,6 +69,7 @@ export default function LessonDetail({ go, params }) {
   const remove = async () => {
     if (!confirm("이 레슨 기록을 삭제할까요?")) return;
     await deleteLog(log.id);
+    logDeletion("lesson", "delete", { refId: log.id });
     go("studentDetail", { student });
   };
 

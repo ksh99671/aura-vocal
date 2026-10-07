@@ -1,4 +1,5 @@
 import { useState, useEffect, useLayoutEffect, useRef } from "react";
+import { onAppOpen } from "./lib/accountMeta";
 import { useAuth } from "./hooks/useAuth";
 import Login from "./screens/Login";
 import Home from "./screens/Home";
@@ -91,6 +92,9 @@ export default function App() {
   };
   go.back = () => { if (nav.current.pos > 0) window.history.back(); };
   go.canBack = nav.current.pos > 0;
+
+  // 가입일, 마지막 접속, 앱 버전을 기록하고 30일 지난 휴지통을 정리한다 (실패해도 앱은 그대로 동작)
+  useEffect(() => { onAppOpen(user); }, [user]);
   const toggleTheme = () => setTheme(t => t === "dark" ? "light" : "dark");
 
   // 화면이 바뀐 직후에만 "화면 진입 효과"를 켠다. (나중에 생기는 입력칸/폼에는 진입 효과가 붙지 않게)
