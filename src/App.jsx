@@ -1,4 +1,4 @@
-import { useState, useEffect, useLayoutEffect } from "react";
+import { useState, useEffect, useLayoutEffect, useRef } from "react";
 import { useAuth } from "./hooks/useAuth";
 import Login from "./screens/Login";
 import Home from "./screens/Home";
@@ -44,7 +44,53 @@ export default function App() {
     localStorage.setItem("theme", theme);
   }, [theme]);
 
-  const go = (screen, params = {}) => setNav({ screen, params });
+  // ── 화면 이동 기록: 폰/브라우저/마우스의 뒤로 가기와 앱 안의 "돌아가기"가 같은 기록을 쓴다 ──
+  const nav = useRef({ trail: [0], map: new Map([[0, { screen: "home", params: {} }]]), pos: 0, next: 1, pending: null });
+  useEffect(() => {
+    window.history.replaceState({ auraNav: 0 }, "");
+    const onPop = (e) => {
+      const id = e.state && typeof e.state.auraNav === "number" ? e.state.auraNav : null;
+      if (id === null) return;
+      const n = nav.current;
+      let pos = n.trail.indexOf(id);
+      if (pos < 0) { n.trail = [id]; pos = 0; } // 새로고침 뒤처럼 기록을 모르는 자리는 새 시작점으로
+      n.pos = pos;
+      const entry = n.map.get(id) || { screen: "home", params: {} };
+      const next = n.pending ? { screen: entry.screen, params: n.pending } : entry;
+      n.pending = null;
+      n.map.set(id, next);
+      setNav(next);
+    };
+    window.addEventListener("popstate", onPop);
+    return () => window.removeEventListener("popstate", onPop);
+  }, []);
+  const go = (screen, params = {}, opts = {}) => {
+    const n = nav.current;
+    const curId = n.trail[n.pos];
+    const cur = n.map.get(curId);
+    const prev = n.pos > 0 ? n.map.get(n.trail[n.pos - 1]) : null;
+    const sameStu = (a, b) => (a?.student?.id ?? null) === (b?.student?.id ?? null);
+    const entry = { screen, params };
+    if (!opts.push && !opts.replace && prev && prev.screen === screen && sameStu(prev.params, params)) {
+      n.pending = params; // 바로 이전 화면으로 가는 건 "뒤로"로 처리 (기록이 쌓이지 않게, 화면 정보는 새것으로)
+      window.history.back();
+      return;
+    }
+    if (opts.replace || (cur && cur.screen === screen && sameStu(cur.params, params))) {
+      n.map.set(curId, entry);
+      window.history.replaceState({ auraNav: curId }, "");
+      setNav(entry);
+      return;
+    }
+    const id = n.next++;
+    n.trail = [...n.trail.slice(0, n.pos + 1), id];
+    n.pos = n.trail.length - 1;
+    n.map.set(id, entry);
+    window.history.pushState({ auraNav: id }, "");
+    setNav(entry);
+  };
+  go.back = () => { if (nav.current.pos > 0) window.history.back(); };
+  go.canBack = nav.current.pos > 0;
   const toggleTheme = () => setTheme(t => t === "dark" ? "light" : "dark");
 
   // 화면이 바뀐 직후에만 "화면 진입 효과"를 켠다. (나중에 생기는 입력칸/폼에는 진입 효과가 붙지 않게)

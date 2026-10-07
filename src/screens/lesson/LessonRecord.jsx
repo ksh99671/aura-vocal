@@ -149,7 +149,7 @@ export default function LessonRecord({ go, params }) {
       } catch {
         /* 무시 */
       }
-      go("studentDetail", { student: updated });
+      go("studentDetail", { student: updated }, { replace: true });
     } catch (err) {
       console.error(err);
       setError("저장하지 못했어요: " + (err.code || err.message));
@@ -273,7 +273,7 @@ export default function LessonRecord({ go, params }) {
                 {it.name}
               </button>
             ))}
-            <button className="rec-chip rec-chip-add" onClick={() => go("settings")} aria-label="수업 항목 편집">
+            <button className="rec-chip rec-chip-add" onClick={() => go("settings", { from: "lessonRecord" })} aria-label="수업 항목 편집">
               ＋
             </button>
           </div>

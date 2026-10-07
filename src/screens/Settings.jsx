@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import NavBar from "../components/NavBar";
+import BackButton from "../components/BackButton";
 import { auth } from "../firebase";
 import { useLessonItems, ITEM_COLORS } from "../hooks/useLessonItems";
 
@@ -62,7 +63,8 @@ function ItemRow({ item, index, last, onUpdate, onDelete, onMove }) {
   );
 }
 
-export default function Settings({ go, logOut }) {
+export default function Settings({ go, logOut, params }) {
+  const canBack = !!params?.from && typeof go.back === "function"; // 다른 화면에서 들어온 경우에만
   const user = auth.currentUser;
   const { items, loaded, addItem, updateItem, deleteItem, moveItem, resetItems } = useLessonItems();
   const [adding, setAdding] = useState(false);
@@ -78,7 +80,8 @@ export default function Settings({ go, logOut }) {
 
   return (
     <div className="screen">
-      <div style={{ paddingTop: 52, marginBottom: 24 }}>
+      {canBack && <BackButton label="돌아가기" onClick={() => go.back()} />}
+      <div style={{ paddingTop: canBack ? 0 : 52, marginBottom: 24 }}>
         <p className="eyebrow">Settings</p>
         <h2 className="screen-title"><strong>설정</strong></h2>
       </div>
