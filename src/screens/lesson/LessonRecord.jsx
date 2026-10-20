@@ -102,13 +102,30 @@ export default function LessonRecord({ go, params }) {
     }
   };
   useEffect(() => {
+    if (!focusNote) return;
+    const el = document.getElementById(`note-${focusNote}`);
+    if (el) el.focus({ preventScroll: false });
+    setFocusNote("");
+  }, [focusNote]);
+  useEffect(() => {
     if (focusHw >= 0) {
       document.getElementById(`hw-${focusHw}`)?.focus();
       setFocusHw(-1);
     }
   }, [focusHw]);
 
-  const addRow = (item) => setRows((r) => [...r, rowFromItem(item)]);
+  // 항목을 추가하면 그 줄의 메모칸에 바로 커서가 간다
+  const [focusNote, setFocusNote] = useState("");
+  const addRow = (item) => {
+    const row = rowFromItem(item);
+    setRows((r) => [...r, row]);
+    setFocusNote(row.key);
+  };
+  const fit = (el) => {
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = Math.min(el.scrollHeight, 200) + "px"; // 글이 길어지면 아래로 늘어나고, 너무 길면 칸 안에서 스크롤
+  };
   // 칩에 없는 것을 직접 적어서 추가. 이름이 칩과 같으면 그 칩으로 (곡 칸 등 설정 그대로), 아니면 이번 레슨에만 쓰는 항목
   const [custom, setCustom] = useState("");
   const addCustom = () => {
@@ -149,6 +166,7 @@ export default function LessonRecord({ go, params }) {
       const memo = composeMemo(rows, hwClean);
       const segs = toSegments(rows);
       const hwItemsNew = hwClean.map((text) => ({ text, status: "" }));
+      let didShare = false;
       const newId = await addLog({
         memo: memo || "첫 레슨",
         segments: segs,
@@ -158,6 +176,7 @@ export default function LessonRecord({ go, params }) {
       if (canShare && shareOn && newId) {
         try {
           await shareLog(student.id, newId, { date: Timestamp.now(), segments: segs, homeworkItems: hwItemsNew }, lessonNo, "");
+          didShare = true;
         } catch (e) {
           console.error(e);
           alert("레슨은 저장됐지만 학생에게 공유하지 못했어요. 레슨 상세에서 다시 켜주세요.");
@@ -173,7 +192,10 @@ export default function LessonRecord({ go, params }) {
       } catch {
         /* 무시 */
       }
-      go("studentDetail", { student: updated }, { replace: true });
+      go("lessonSummary", {
+        student: updated, logId: newId, lessonNo, date: Date.now(), shared: didShare,
+        segments: segs, homework: hwItemsNew,
+      }, { replace: true });
     } catch (err) {
       console.error(err);
       setError("저장하지 못했어요: " + (err.code || err.message));
@@ -341,11 +363,14 @@ export default function LessonRecord({ go, params }) {
                       />
                     )}
                   </div>
-                  <input
-                    className="rec-note"
+                  <textarea
+                    id={`note-${r.key}`}
+                    className="rec-note rec-note-area"
+                    rows={1}
+                    ref={fit}
                     value={r.note}
-                    onChange={(e) => updateRow(r.key, { note: e.target.value })}
-                    placeholder="메모"
+                    onChange={(e) => { updateRow(r.key, { note: e.target.value }); fit(e.target); }}
+                    placeholder="메모 (Enter 줄 바꿈, ⌘/Ctrl+Enter 저장)"
                   />
                   <div className="rec-status">
                     {STATUS.map((s) => (

@@ -22,6 +22,7 @@ import History from "./screens/shared/History";
 import StudentsList from "./screens/students/StudentsList";
 import StudentDetail from "./screens/students/StudentDetail";
 import LessonDetail from "./screens/students/LessonDetail";
+import LessonSummary from "./screens/lesson/LessonSummary";
 
 const SCREENS = {
   home: Home, settings: Settings,
@@ -30,7 +31,7 @@ const SCREENS = {
   lessonHub: LessonStart, studentSelect: LessonStart, lessonRecord: LessonRecord,
   checklist: Checklist, lessonResult: LessonResult,
   library: VaultList, vaultNote: VaultNote, vaultEdit: VaultEdit, history: History,
-  studentsList: StudentsList, studentDetail: StudentDetail, lessonDetail: LessonDetail,
+  studentsList: StudentsList, studentDetail: StudentDetail, lessonDetail: LessonDetail, lessonSummary: LessonSummary,
 };
 
 export default function App() {

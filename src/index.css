@@ -773,3 +773,6 @@ html[data-screen="lessonHub"] .screen > .student-card:nth-child(even) { animatio
 @media (min-width: 1024px) and (hover: hover) and (pointer: fine) {
   .rec-kbd { display: inline-block; }
 }
+
+/* AURA-NOTE: 항목 메모칸은 글이 길면 줄을 바꾸고 아래로 늘어난다 (옆으로 밀려 잘리지 않게) */
+.rec-note-area { resize: none; overflow-y: auto; line-height: 1.55; white-space: pre-wrap; overflow-wrap: anywhere; width: 100%; box-sizing: border-box; align-self: start; }
