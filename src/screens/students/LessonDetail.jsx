@@ -4,6 +4,7 @@ import BackButton from "../../components/BackButton";
 import NavBar from "../../components/NavBar";
 import { useLessonLogs } from "../../hooks/useFirestore";
 import { logDeletion } from "../../lib/trash";
+import { useStudentLink, shareLog, unshareLog, resyncShared, removeShared, needsStudentNote } from "../../lib/studentLink";
 
 const toInput = (ts) => {
   const d = ts?.toDate?.();
@@ -29,6 +30,12 @@ export default function LessonDetail({ go, params }) {
   const [noVal, setNoVal] = useState(String(lessonNo ?? ""));
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
+  const { linked } = useStudentLink(student?.id);
+  const [shared, setShared] = useState(!!log?.shared);
+  const [note, setNote] = useState(log?.studentNote || "");
+  const [askNote, setAskNote] = useState(false); // 한 줄 피드백 입력칸 열림
+  const [shareBusy, setShareBusy] = useState(false);
+  const [shareErr, setShareErr] = useState("");
 
   if (!student || !log) return null;
 
@@ -53,8 +60,9 @@ export default function LessonDetail({ go, params }) {
     const newDate = fromInput(dateVal);
     await updateLog(log.id, { memo, date: newDate });
     if (no !== lessonNo) await moveLog(log.id, no - base);
+    if (shared) await resyncShared(student.id, log.id, { ...log, date: newDate }, no, note);
     // 화면 정보도 최신으로 (다시 수정/취소할 때 옛 값으로 돌아가지 않게)
-    go("lessonDetail", { student, log: { ...log, memo, date: newDate }, lessonNo: no });
+    go("lessonDetail", { student, log: { ...log, memo, date: newDate, shared, studentNote: note }, lessonNo: no });
     setSaving(false);
     setEditing(false);
   };
@@ -69,8 +77,44 @@ export default function LessonDetail({ go, params }) {
   const remove = async () => {
     if (!confirm("이 레슨 기록을 삭제할까요?")) return;
     await deleteLog(log.id);
+    await removeShared(student.id, log.id);
     logDeletion("lesson", "delete", { refId: log.id });
     go("studentDetail", { student });
+  };
+
+  const needNote = needsStudentNote(log);
+
+  const runShare = async (fn) => {
+    if (shareBusy) return;
+    setShareBusy(true);
+    setShareErr("");
+    try {
+      await fn();
+    } catch (e) {
+      console.error(e);
+      setShareErr("처리하지 못했어요: " + (e.code || e.message));
+    }
+    setShareBusy(false);
+  };
+  const turnOn = () => {
+    if (needNote && !note.trim()) { setAskNote(true); return; } // 칩 없는 예전 기록은 학생에게 보낼 한 줄이 먼저 필요
+    runShare(async () => {
+      await shareLog(student.id, log.id, { ...log, date: log.date }, lessonNo, note);
+      setShared(true);
+    });
+  };
+  const turnOff = () => runShare(async () => {
+    await unshareLog(student.id, log.id);
+    setShared(false);
+    setAskNote(false);
+  });
+  const sendNote = () => {
+    if (!note.trim()) return;
+    runShare(async () => {
+      await shareLog(student.id, log.id, { ...log }, lessonNo, note);
+      setShared(true);
+      setAskNote(false);
+    });
   };
 
   return (
@@ -83,6 +127,46 @@ export default function LessonDetail({ go, params }) {
         <h2 className="screen-title"><strong>{lessonNo}회차 레슨</strong></h2>
         <p style={{fontSize:13, color: dateVal ? "var(--text2)" : "var(--text3)", marginTop:6}}>{label(dateVal)}</p>
       </div>
+
+      {/* 학생에게 공유 */}
+      {(linked || shared) && !editing && (
+        <div className="result-card" style={{marginBottom:12}} data-testid="share-card">
+          <div style={{display:"flex", justifyContent:"space-between", alignItems:"center", gap:10}}>
+            <div>
+              <p className="card-label" style={{marginBottom:2}}>학생에게 공유</p>
+              <p style={{fontSize:11, color:"var(--text3)", lineHeight:1.6}}>
+                {linked ? "피드백과 과제만 보여요. 트레이너 메모는 보이지 않아요." : "학생 앱 연결이 해제돼 있어요. 다시 연결하면 이어서 보여요."}
+              </p>
+            </div>
+            <button
+              role="switch" aria-checked={shared} aria-label="학생에게 공유"
+              disabled={shareBusy || (!linked && !shared)}
+              onClick={shared ? turnOff : turnOn}
+              style={{
+                width:44, height:26, borderRadius:13, border:"none", flexShrink:0, cursor:"pointer", position:"relative",
+                background: shared ? "var(--accent)" : "var(--bg3)", transition:"background .2s",
+              }}
+            >
+              <span style={{position:"absolute", top:3, left: shared ? 21 : 3, width:20, height:20, borderRadius:"50%", background:"#fff", transition:"left .2s"}} />
+            </button>
+          </div>
+
+          {(askNote || (shared && needNote)) && (
+            <div style={{marginTop:12}}>
+              <p className="card-label">학생에게 보낼 한 줄 피드백</p>
+              <p style={{fontSize:11, color:"var(--text3)", marginBottom:8, lineHeight:1.6}}>
+                {needNote ? "이 레슨은 항목 기록이 없어서, 학생에게 보일 한 줄을 따로 적어야 해요." : ""}
+              </p>
+              <input value={note} onChange={e => setNote(e.target.value)} maxLength={120} placeholder="예: 호흡이 많이 안정됐어요. 다음엔 고음 연결에 집중해요"
+                style={{width:"100%", padding:"10px 12px", borderRadius:10, background:"var(--bg3)", border:"0.5px solid var(--border2)", color:"var(--text1)", fontSize:13, fontFamily:"inherit", outline:"none"}} />
+              <button className="btn-primary" style={{marginTop:8}} disabled={!note.trim() || shareBusy} onClick={sendNote}>
+                {shared ? "한 줄 수정" : "공유하기"}
+              </button>
+            </div>
+          )}
+          {shareErr && <p style={{fontSize:11, color:"#e04a4a", marginTop:8}}>{shareErr}</p>}
+        </div>
+      )}
 
       {/* 레슨 내용 */}
       <div className="result-card" style={{marginBottom:12}}>

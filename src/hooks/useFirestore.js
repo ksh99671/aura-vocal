@@ -50,7 +50,8 @@ export function useLessonLogs(studentId) {
 
   const addLog = async (data) => {
     const ref = collection(db, "trainers", getTrainerId(), "students", studentId, "lessonLogs");
-    await addDoc(ref, { ...data, date: serverTimestamp() });
+    const added = await addDoc(ref, { ...data, date: serverTimestamp() });
+    return added.id;
   };
 
   const updateLog = async (logId, data) => {

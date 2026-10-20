@@ -1,0 +1,72 @@
+// ─────────────────────────────────────────────────────────────
+// Aura 학생 앱용 Firestore 규칙 (초안 — 아직 적용하지 마세요)
+// 학생 앱을 만들기 시작할 때 Firebase 콘솔 → Firestore → 규칙에 통째로 붙여넣습니다.
+// 지금 쓰는 규칙(트레이너 본인만 접근)은 맨 위 블록에 그대로 들어 있습니다.
+// 주의: Firestore 에뮬레이터로 시험하기 전의 초안입니다.
+// ─────────────────────────────────────────────────────────────
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // 1) 트레이너 본인: 기존과 동일
+    match /trainers/{uid}/{document=**} {
+      allow read, write: if request.auth != null && request.auth.uid == uid;
+    }
+
+    // 2) 학생 코드: 문서 id가 곧 코드. 목록 조회는 막고, 정확한 코드로 한 건만 읽을 수 있다.
+    //    코드는 8자리(32종) = 약 1조 가지, 7일 안에 1회만 쓸 수 있다.
+    match /invites/{code} {
+      allow get: if request.auth != null;
+      allow list: if false;
+      allow create: if request.auth != null && request.resource.data.trainerUid == request.auth.uid;
+      allow delete: if request.auth != null && resource.data.trainerUid == request.auth.uid;
+      // 학생 앱이 "사용함"으로 바꾼다. 같은 묶음에서 links 문서를 함께 만들어야 통과한다.
+      allow update: if request.auth != null
+        && resource.data.used == false
+        && resource.data.expiresAt > request.time
+        && request.resource.data.used == true
+        && request.resource.data.usedBy == request.auth.uid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['used', 'usedBy', 'usedAt'])
+        && existsAfter(/databases/$(database)/documents/trainers/$(resource.data.trainerUid)/students/$(resource.data.studentId)/links/$(request.auth.uid));
+    }
+
+    // 3) 연결: 학생이 코드를 쓰는 순간 만든다. 코드가 유효했고 이 묶음에서 사용 처리될 때만 생성 가능.
+    //    문서 필드: code, linkedAt(serverTimestamp)
+    match /trainers/{uid}/students/{sid}/links/{studentUid} {
+      allow get: if request.auth != null && request.auth.uid == studentUid;
+      allow create: if request.auth != null
+        && request.auth.uid == studentUid
+        && get(/databases/$(database)/documents/invites/$(request.resource.data.code)).data.used == false
+        && get(/databases/$(database)/documents/invites/$(request.resource.data.code)).data.expiresAt > request.time
+        && get(/databases/$(database)/documents/invites/$(request.resource.data.code)).data.trainerUid == uid
+        && get(/databases/$(database)/documents/invites/$(request.resource.data.code)).data.studentId == sid
+        && getAfter(/databases/$(database)/documents/invites/$(request.resource.data.code)).data.used == true
+        && getAfter(/databases/$(database)/documents/invites/$(request.resource.data.code)).data.usedBy == studentUid;
+    }
+
+    // 4) 학생이 자기 연결 위치를 다시 찾기 위한 색인 (로그인할 때마다 코드를 안 넣도록)
+    //    문서 필드: trainerUid, studentId
+    match /studentLinks/{studentUid} {
+      allow read: if request.auth != null && request.auth.uid == studentUid;
+      allow create: if request.auth != null && request.auth.uid == studentUid
+        && existsAfter(/databases/$(database)/documents/trainers/$(request.resource.data.trainerUid)/students/$(request.resource.data.studentId)/links/$(studentUid));
+    }
+
+    // 5) 학생이 볼 수 있는 것: 연결된 학생에게 "공유한 레슨"의 사본만 (읽기 전용)
+    //    트레이너 메모, 다른 레슨 기록, 다른 학생은 어떤 경로로도 읽을 수 없다.
+    match /trainers/{uid}/students/{sid}/shared/{logId} {
+      allow read: if request.auth != null
+        && exists(/databases/$(database)/documents/trainers/$(uid)/students/$(sid)/links/$(request.auth.uid));
+    }
+
+    // 6) 학생의 연습 기록: 자기 것만 읽고 쓴다 (트레이너는 1)번 규칙으로 읽는다)
+    match /trainers/{uid}/students/{sid}/practice/{pid} {
+      allow read: if request.auth != null && resource.data.studentUid == request.auth.uid
+        && exists(/databases/$(database)/documents/trainers/$(uid)/students/$(sid)/links/$(request.auth.uid));
+      allow create: if request.auth != null && request.resource.data.studentUid == request.auth.uid
+        && exists(/databases/$(database)/documents/trainers/$(uid)/students/$(sid)/links/$(request.auth.uid));
+      allow update, delete: if request.auth != null && resource.data.studentUid == request.auth.uid
+        && exists(/databases/$(database)/documents/trainers/$(uid)/students/$(sid)/links/$(request.auth.uid));
+    }
+  }
+}

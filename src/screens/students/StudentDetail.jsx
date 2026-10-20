@@ -6,6 +6,7 @@ import { doc, updateDoc, deleteDoc } from "firebase/firestore";
 import { db, auth } from "../../firebase";
 import { moveStudentToTrash } from "../../lib/trash";
 import HomeworkCard, { HwDot } from "../../components/HomeworkCard";
+import StudentLinkCard from "../../components/StudentLinkCard";
 
 const todayStr = () => {
   const d = new Date();
@@ -227,6 +228,8 @@ export default function StudentDetail({ go, params }) {
           </>
         )}
       </div>
+
+      <StudentLinkCard student={student} />
 
       <HomeworkCard logs={logs} baseCount={baseCount} student={student} go={go} />
 

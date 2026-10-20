@@ -1,10 +1,11 @@
 import { useState, useEffect, useRef } from "react";
-import { doc, updateDoc, serverTimestamp } from "firebase/firestore";
+import { doc, updateDoc, serverTimestamp, Timestamp } from "firebase/firestore";
 import { db, auth } from "../../firebase";
 import BackButton from "../../components/BackButton";
 import NavBar from "../../components/NavBar";
 import { useLessonLogs } from "../../hooks/useFirestore";
 import { useLessonItems } from "../../hooks/useLessonItems";
+import { useStudentLink, shareLog, syncSharedHomework } from "../../lib/studentLink";
 import {
   STATUS, HW_STATUS, composeMemo, toSegments, rowFromItem, rowsFromSegments,
   splitHomework, cleanHw, hwItemsFromLog, hwScore, fmtScore,
@@ -24,6 +25,8 @@ export default function LessonRecord({ go, params }) {
   const isNew = !!params?.isNew;
   const { items, loaded } = useLessonItems();
   const { logs, addLog } = useLessonLogs(student?.id);
+  const { linked } = useStudentLink(student?.id);
+  const [shareOn, setShareOn] = useState(true); // 연결된 학생은 기본 켜짐. 저장 전에 끌 수 있다
 
   const [rows, setRows] = useState(() => (student && loadDraft(student.id)?.rows) || []);
   // 다음 과제: 한 줄에 하나. (예전 임시저장은 글 한 덩어리였으니 줄로 쪼개서 이어받는다)
@@ -43,6 +46,7 @@ export default function LessonRecord({ go, params }) {
 
   const lessonNo = Number(student?.baseCount || 0) + logs.length + 1;
   const hwClean = cleanHw(hwTexts);
+  const canShare = !!linked && !isNew && (rows.length > 0 || hwClean.length > 0);
   const canSave = rows.length > 0 || hwClean.length > 0 || (isNew && firstMemo.trim() !== "");
 
   const prev = logs[0];
@@ -63,6 +67,7 @@ export default function LessonRecord({ go, params }) {
         homeworkItems: next.map((x) => ({ text: x.text, status: x.status })),
         homeworkCheckedAt: serverTimestamp(),
       });
+      if (prev.shared) syncSharedHomework(student.id, prev.id, next);
     } catch (e) {
       console.error(e);
       setLocalHw(base);
@@ -104,6 +109,15 @@ export default function LessonRecord({ go, params }) {
   }, [focusHw]);
 
   const addRow = (item) => setRows((r) => [...r, rowFromItem(item)]);
+  // 칩에 없는 것을 직접 적어서 추가. 이름이 칩과 같으면 그 칩으로 (곡 칸 등 설정 그대로), 아니면 이번 레슨에만 쓰는 항목
+  const [custom, setCustom] = useState("");
+  const addCustom = () => {
+    const name = custom.trim();
+    if (!name) return;
+    const same = (loaded ? items : []).find((i) => i.name.trim().toLowerCase() === name.toLowerCase());
+    addRow(same || { id: "", name, color: "#c9a96e", song: false });
+    setCustom("");
+  };
   const updateRow = (key, patch) => setRows((r) => r.map((x) => (x.key === key ? { ...x, ...patch } : x)));
   const removeRow = (key) => setRows((r) => r.filter((x) => x.key !== key));
 
@@ -133,12 +147,22 @@ export default function LessonRecord({ go, params }) {
     setError("");
     try {
       const memo = composeMemo(rows, hwClean);
-      await addLog({
+      const segs = toSegments(rows);
+      const hwItemsNew = hwClean.map((text) => ({ text, status: "" }));
+      const newId = await addLog({
         memo: memo || "첫 레슨",
-        segments: toSegments(rows),
+        segments: segs,
         homework: hwClean.join("\n"),
-        homeworkItems: hwClean.map((text) => ({ text, status: "" })),
+        homeworkItems: hwItemsNew,
       });
+      if (canShare && shareOn && newId) {
+        try {
+          await shareLog(student.id, newId, { date: Timestamp.now(), segments: segs, homeworkItems: hwItemsNew }, lessonNo, "");
+        } catch (e) {
+          console.error(e);
+          alert("레슨은 저장됐지만 학생에게 공유하지 못했어요. 레슨 상세에서 다시 켜주세요.");
+        }
+      }
       let updated = student;
       if (isNew && firstMemo.trim()) {
         await updateDoc(doc(db, "trainers", auth.currentUser.uid, "students", student.id), { memo: firstMemo.trim() });
@@ -278,6 +302,25 @@ export default function LessonRecord({ go, params }) {
             </button>
           </div>
           )}
+          <div className="rec-custom" style={{ display: "flex", gap: 8, margin: "8px 0 4px" }}>
+            <input
+              className="rec-note"
+              style={{ flex: 1, borderBottom: ".5px solid var(--border2)" }}
+              value={custom}
+              onChange={(e) => setCustom(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !e.ctrlKey && !e.metaKey && !e.nativeEvent.isComposing) {
+                  e.preventDefault();
+                  addCustom();
+                }
+              }}
+              placeholder="칩에 없는 항목은 직접 적고 Enter"
+              aria-label="항목 직접 입력"
+            />
+            {custom.trim() && (
+              <button className="rec-chip rec-chip-add" onClick={addCustom}>추가</button>
+            )}
+          </div>
 
           <p className="rec-lbl">기록 {rows.length}</p>
           {rows.length === 0 ? (
@@ -368,6 +411,13 @@ export default function LessonRecord({ go, params }) {
               )}
             </div>
           ))}
+
+          {canShare && (
+            <label className="rec-share" data-testid="share-switch" style={{display:"flex", alignItems:"center", gap:10, margin:"16px 0 4px", fontSize:13, color:"var(--text1)", cursor:"pointer"}}>
+              <input type="checkbox" checked={shareOn} onChange={(e) => setShareOn(e.target.checked)} style={{width:18, height:18, accentColor:"var(--accent)"}} />
+              <span>학생에게 공유 <span style={{fontSize:11, color:"var(--text3)"}}>· 피드백과 과제만 보여요</span></span>
+            </label>
+          )}
 
           <div className="rec-save">
             {error && <p className="error-text" style={{ marginBottom: 8 }}>{error}</p>}

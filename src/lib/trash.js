@@ -6,6 +6,8 @@ import { db, auth } from "../firebase";
 export const TRASH_DAYS = 30;
 const DAY = 86400000;
 
+import { revokeAll } from "./studentLink";
+
 const uid = () => auth.currentUser.uid;
 
 // 같은 학생에 대한 같은 작업이 이미 진행 중이면 다시 시작하지 않는다 (빠르게 두 번 눌러도 한 번만)
@@ -33,10 +35,10 @@ export const chunk = (arr, n = 400) => {
   for (let i = 0; i < arr.length; i += n) out.push(arr.slice(i, i + n));
   return out;
 };
-async function copyDocs(docs, toRefOf) {
+async function copyDocs(docs, toRefOf, mapData = (x) => x) {
   for (const part of chunk(docs)) {
     const b = writeBatch(db);
-    part.forEach((d) => b.set(toRefOf(d.id), d.data()));
+    part.forEach((d) => b.set(toRefOf(d.id), mapData(d.data())));
     await b.commit();
   }
 }
@@ -93,6 +95,12 @@ async function doMoveToTrash(studentId) {
     throw e;
   }
   try {
+    await revokeAll(studentId); // 학생 앱 연결·공유 사본·코드를 끊는다 (남으면 학생이 계속 볼 수 있어서 실패하면 삭제도 취소)
+  } catch (e) {
+    await rollbackTrash(studentId);
+    throw e;
+  }
+  try {
     await deleteDoc(sRef(studentId)); // 목록에서 사라지는 순간
   } catch (e) {
     await rollbackTrash(studentId);
@@ -114,10 +122,13 @@ export function restoreStudent(studentId) {
 async function doRestore(studentId) {
   const t = await getDoc(tRef(studentId));
   if (!t.exists()) return false;
-  const { deletedAt, purgeAfter, logCount, ...rest } = t.data();
+  const { deletedAt, purgeAfter, logCount, inviteCode, inviteExpiresAt, ...rest } = t.data(); // 학생 앱 코드는 되살리지 않는다
   const logs = await getDocs(tLogs(studentId));
   await setDoc(sRef(studentId), rest);
-  await copyDocs(logs.docs, (id) => doc(db, ...P("students", studentId, "lessonLogs", id)));
+  await copyDocs(logs.docs, (id) => doc(db, ...P("students", studentId, "lessonLogs", id)), (x) => {
+    const { shared, studentNote, ...r } = x; // 공유 사본은 지워졌으니 공유 표시도 되돌린다
+    return r;
+  });
   await deleteDocs(logs.docs.map((d) => d.ref));
   await deleteDoc(tRef(studentId));
   await logDeletion("student", "restore", { refId: studentId, logCount: logs.docs.length });
