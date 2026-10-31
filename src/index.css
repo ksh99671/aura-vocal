@@ -795,3 +795,8 @@ html[data-screen="lessonHub"] .screen > .student-card:nth-child(even) { animatio
 .rec-pad-line { padding: 0; border-bottom: none; align-items: flex-start; }
 .rec-pad-tag, .rec-pad-dash { line-height: 28px; padding-top: 0; }
 .rec-pad-in { line-height: 28px; padding: 0; font-size: 14px; }
+
+/* AURA-NOTEBOOK: 줄 노트. 넓은 종이 한 장에 줄이 그어져 있고 그 위에 바로 적는다 */
+.rec-nb { display: block; width: 100%; box-sizing: border-box; min-height: 224px; resize: vertical; font: inherit; font-size: 15px; line-height: 32px; color: var(--text1); background-color: var(--bg2); background-image: linear-gradient(to right, transparent 34px, rgba(224, 106, 106, .35) 34px, rgba(224, 106, 106, .35) 35px, transparent 35px), repeating-linear-gradient(to bottom, transparent 0, transparent 31px, var(--border2) 31px, var(--border2) 32px); background-attachment: local; background-origin: padding-box; border: .5px solid var(--border2); border-radius: 12px; padding: 0 16px 0 46px; outline: none; white-space: pre-wrap; overflow-wrap: anywhere; }
+.rec-nb::placeholder { color: var(--text3); }
+.rec-nb:focus { border-color: var(--accent-mid, var(--border2)); }
