@@ -123,6 +123,7 @@ export default function LessonRecord({ go, params }) {
   };
   const fit = (el) => {
     if (!el) return;
+    if (!el.value) { el.style.height = ""; return; } // 비어 있으면 한 줄 높이 그대로 (안내 글이 줄 바뀜으로 칸을 키우지 않게)
     el.style.height = "auto";
     el.style.height = Math.min(el.scrollHeight, 200) + "px"; // 글이 길어지면 아래로 늘어나고, 너무 길면 칸 안에서 스크롤
   };
@@ -370,7 +371,7 @@ export default function LessonRecord({ go, params }) {
                     ref={fit}
                     value={r.note}
                     onChange={(e) => { updateRow(r.key, { note: e.target.value }); fit(e.target); }}
-                    placeholder="메모 (Enter 줄 바꿈, ⌘/Ctrl+Enter 저장)"
+                    placeholder="메모"
                   />
                   <div className="rec-status">
                     {STATUS.map((s) => (
