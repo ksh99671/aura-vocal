@@ -776,3 +776,15 @@ html[data-screen="lessonHub"] .screen > .student-card:nth-child(even) { animatio
 
 /* AURA-NOTE: 항목 메모칸은 글이 길면 줄을 바꾸고 아래로 늘어난다 (옆으로 밀려 잘리지 않게) */
 .rec-note-area { min-height: 0; max-height: 200px; height: auto; resize: none; overflow-y: auto; line-height: 1.55; white-space: pre-wrap; overflow-wrap: anywhere; width: 100%; box-sizing: border-box; align-self: start; }
+
+/* AURA-PAD: 기록 아래 메모장. 항목을 누르면 한 줄이 생기고 거기서 바로 적는다 */
+.rec-row { grid-template-areas: "main x" "status status"; }
+@media (min-width: 900px) { .rec-row { grid-template-columns: minmax(130px, 200px) minmax(0, 1fr) auto; grid-template-areas: "main status x"; } }
+.rec-pad { background: var(--bg2); border: .5px solid var(--border2); border-radius: 14px; padding: 6px 14px; }
+.rec-pad-line { display: flex; align-items: flex-start; gap: 8px; padding: 8px 0; border-bottom: .5px solid var(--border); }
+.rec-pad-line:last-child { border-bottom: none; }
+.rec-pad-tag { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; flex-shrink: 0; padding-top: 3px; max-width: 45%; overflow-wrap: anywhere; }
+.rec-pad-tag i { width: 7px; height: 7px; border-radius: 50%; display: inline-block; flex-shrink: 0; }
+.rec-pad-dash { color: var(--text3); padding-top: 3px; flex-shrink: 0; }
+.rec-pad-in { flex: 1; min-width: 0; font: inherit; font-size: 14px; color: var(--text1); background: transparent; border: none; outline: none; resize: none; padding: 3px 0; line-height: 1.6; overflow-y: auto; max-height: 200px; white-space: pre-wrap; overflow-wrap: anywhere; }
+.rec-pad-in::placeholder { color: var(--text3); }

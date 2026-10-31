@@ -127,15 +127,6 @@ export default function LessonRecord({ go, params }) {
     el.style.height = "auto";
     el.style.height = Math.min(el.scrollHeight, 200) + "px"; // 글이 길어지면 아래로 늘어나고, 너무 길면 칸 안에서 스크롤
   };
-  // 칩에 없는 것을 직접 적어서 추가. 이름이 칩과 같으면 그 칩으로 (곡 칸 등 설정 그대로), 아니면 이번 레슨에만 쓰는 항목
-  const [custom, setCustom] = useState("");
-  const addCustom = () => {
-    const name = custom.trim();
-    if (!name) return;
-    const same = (loaded ? items : []).find((i) => i.name.trim().toLowerCase() === name.toLowerCase());
-    addRow(same || { id: "", name, color: "#c9a96e", song: false });
-    setCustom("");
-  };
   const updateRow = (key, patch) => setRows((r) => r.map((x) => (x.key === key ? { ...x, ...patch } : x)));
   const removeRow = (key) => setRows((r) => r.filter((x) => x.key !== key));
 
@@ -325,25 +316,6 @@ export default function LessonRecord({ go, params }) {
             </button>
           </div>
           )}
-          <div className="rec-custom" style={{ display: "flex", gap: 8, margin: "8px 0 4px" }}>
-            <input
-              className="rec-note"
-              style={{ flex: 1, borderBottom: ".5px solid var(--border2)" }}
-              value={custom}
-              onChange={(e) => setCustom(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && !e.ctrlKey && !e.metaKey && !e.nativeEvent.isComposing) {
-                  e.preventDefault();
-                  addCustom();
-                }
-              }}
-              placeholder="칩에 없는 항목은 직접 적고 Enter"
-              aria-label="항목 직접 입력"
-            />
-            {custom.trim() && (
-              <button className="rec-chip rec-chip-add" onClick={addCustom}>추가</button>
-            )}
-          </div>
 
           <p className="rec-lbl">기록 {rows.length}</p>
           {rows.length === 0 ? (
@@ -364,15 +336,6 @@ export default function LessonRecord({ go, params }) {
                       />
                     )}
                   </div>
-                  <textarea
-                    id={`note-${r.key}`}
-                    className="rec-note rec-note-area"
-                    rows={1}
-                    ref={fit}
-                    value={r.note}
-                    onChange={(e) => { updateRow(r.key, { note: e.target.value }); fit(e.target); }}
-                    placeholder="메모"
-                  />
                   <div className="rec-status">
                     {STATUS.map((s) => (
                       <button
@@ -392,6 +355,32 @@ export default function LessonRecord({ go, params }) {
               ))}
             </div>
           )}
+
+          {rows.length > 0 && (
+            <>
+              <p className="rec-lbl">메모장</p>
+              <div className="rec-pad" data-testid="rec-pad">
+                {rows.map((r) => (
+                  <div className="rec-pad-line" key={r.key}>
+                    <span className="rec-pad-tag" style={{ color: r.color }}>
+                      <i style={{ background: r.color }} />
+                      {r.name}{r.song ? ` (${r.song})` : ""}
+                    </span>
+                    <span className="rec-pad-dash">-</span>
+                    <textarea
+                      id={`note-${r.key}`}
+                      className="rec-pad-in"
+                      rows={1}
+                      ref={fit}
+                      value={r.note}
+                      onChange={(e) => { updateRow(r.key, { note: e.target.value }); fit(e.target); }}
+                      placeholder="여기에 적기"
+                    />
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
         </div>
 
         <div className="rec-right">
@@ -408,6 +397,7 @@ export default function LessonRecord({ go, params }) {
               )}
             </div>
           )}
+
 
           <p className="rec-lbl">다음 과제 — 한 줄에 하나</p>
           {suggestions.length > 0 && (
