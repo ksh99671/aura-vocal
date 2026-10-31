@@ -39,7 +39,10 @@ export default function LessonRecord({ go, params }) {
   const [localHw, setLocalHw] = useState(null); // 지난 과제 확인 결과 (저장이 끝나기 전에도 바로 보이게)
   const [hwErr, setHwErr] = useState("");
   const [focusHw, setFocusHw] = useState(-1);
-  const [focusNote, setFocusNote] = useState(""); // 항목을 추가한 직후 그 줄 메모칸으로 커서를 보낼 때 쓴다
+  const [focusNote, setFocusNote] = useState("");
+  const [adding, setAdding] = useState(false); // 칩 줄에서 "직접 쓰기"를 누른 상태
+  const [custom, setCustom] = useState("");
+  const customRef = useRef(""); // Enter 직후 입력칸이 사라지며 blur가 한 번 더 불려도 두 번 추가되지 않게 최신 값을 여기서 읽는다 // 항목을 추가한 직후 그 줄 메모칸으로 커서를 보낼 때 쓴다
   const [firstMemo, setFirstMemo] = useState(() => (student && loadDraft(student.id)?.firstMemo) || "");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -120,6 +123,17 @@ export default function LessonRecord({ go, params }) {
     const row = rowFromItem(item);
     setRows((r) => [...r, row]);
     setFocusNote(row.key);
+  };
+  // 칩에 없는 것을 그 자리에서 적어 추가. 이름이 칩과 같으면 그 칩으로, 아니면 이번 레슨에만 쓰는 항목
+  const addCustom = () => {
+    const name = customRef.current.trim();
+    customRef.current = "";
+    if (name) {
+      const same = (loaded ? items : []).find((i) => i.name.trim().toLowerCase() === name.toLowerCase());
+      addRow(same || { id: "", name, color: "#c9a96e", song: false });
+    }
+    setCustom("");
+    setAdding(false);
   };
   const fit = (el) => {
     if (!el) return;
@@ -311,6 +325,24 @@ export default function LessonRecord({ go, params }) {
                 {it.name}
               </button>
             ))}
+            {adding ? (
+              <input
+                className="rec-chip rec-chip-in"
+                autoFocus
+                value={custom}
+                onChange={(e) => { customRef.current = e.target.value; setCustom(e.target.value); }}
+                onKeyDown={(e) => {
+                  if (e.nativeEvent.isComposing) return;
+                  if (e.key === "Enter" && !e.ctrlKey && !e.metaKey) { e.preventDefault(); addCustom(); }
+                  if (e.key === "Escape") { customRef.current = ""; setCustom(""); setAdding(false); }
+                }}
+                onBlur={addCustom}
+                placeholder="항목 이름 + Enter"
+                aria-label="항목 직접 쓰기"
+              />
+            ) : (
+              <button className="rec-chip rec-chip-add" onClick={() => setAdding(true)}>✎ 직접 쓰기</button>
+            )}
             <button className="rec-chip rec-chip-add" onClick={() => go("settings", { from: "lessonRecord" })} aria-label="수업 항목 편집">
               ＋
             </button>

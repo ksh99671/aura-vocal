@@ -788,3 +788,10 @@ html[data-screen="lessonHub"] .screen > .student-card:nth-child(even) { animatio
 .rec-pad-dash { color: var(--text3); padding-top: 3px; flex-shrink: 0; }
 .rec-pad-in { flex: 1; min-width: 0; font: inherit; font-size: 14px; color: var(--text1); background: transparent; border: none; outline: none; resize: none; padding: 3px 0; line-height: 1.6; overflow-y: auto; max-height: 200px; white-space: pre-wrap; overflow-wrap: anywhere; }
 .rec-pad-in::placeholder { color: var(--text3); }
+
+/* AURA-PAD2: 줄 노트 느낌. 28px 간격의 줄 위에 글이 앉는다 */
+.rec-chip-in { font: inherit; font-size: 13px; color: var(--text1); background: var(--bg2); border: .5px dashed var(--accent-mid, var(--border2)); outline: none; padding: 0 14px; min-width: 150px; }
+.rec-pad { padding: 0 14px; min-height: 84px; background-image: repeating-linear-gradient(to bottom, transparent 0, transparent 27px, var(--border2) 27px, var(--border2) 28px); background-attachment: local; }
+.rec-pad-line { padding: 0; border-bottom: none; align-items: flex-start; }
+.rec-pad-tag, .rec-pad-dash { line-height: 28px; padding-top: 0; }
+.rec-pad-in { line-height: 28px; padding: 0; font-size: 14px; }
