@@ -39,6 +39,7 @@ export default function LessonRecord({ go, params }) {
   const [localHw, setLocalHw] = useState(null); // 지난 과제 확인 결과 (저장이 끝나기 전에도 바로 보이게)
   const [hwErr, setHwErr] = useState("");
   const [focusHw, setFocusHw] = useState(-1);
+  const [focusNote, setFocusNote] = useState(""); // 항목을 추가한 직후 그 줄 메모칸으로 커서를 보낼 때 쓴다
   const [firstMemo, setFirstMemo] = useState(() => (student && loadDraft(student.id)?.firstMemo) || "");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -115,7 +116,6 @@ export default function LessonRecord({ go, params }) {
   }, [focusHw]);
 
   // 항목을 추가하면 그 줄의 메모칸에 바로 커서가 간다
-  const [focusNote, setFocusNote] = useState("");
   const addRow = (item) => {
     const row = rowFromItem(item);
     setRows((r) => [...r, row]);
