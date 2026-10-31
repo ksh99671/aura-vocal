@@ -5,7 +5,6 @@ import BackButton from "../../components/BackButton";
 import NavBar from "../../components/NavBar";
 import { useLessonLogs } from "../../hooks/useFirestore";
 import { useLessonItems } from "../../hooks/useLessonItems";
-import { padFromRows, appendHeader, parsePad, removeBlock } from "../../lib/padNote";
 import { useStudentLink, shareLog, syncSharedHomework } from "../../lib/studentLink";
 import {
   STATUS, HW_STATUS, composeMemo, toSegments, rowFromItem, rowsFromSegments,
@@ -30,12 +29,6 @@ export default function LessonRecord({ go, params }) {
   const [shareOn, setShareOn] = useState(true); // 연결된 학생은 기본 켜짐. 저장 전에 끌 수 있다
 
   const [rows, setRows] = useState(() => (student && loadDraft(student.id)?.rows) || []);
-  // 줄 노트 글. 예전 임시저장(항목별 메모)은 노트 모양으로 바꿔서 이어받는다
-  const [pad, setPad] = useState(() => {
-    const d = student && loadDraft(student.id);
-    return typeof d?.pad === "string" ? d.pad : padFromRows(d?.rows || []);
-  });
-  const padRef = useRef(null);
   // 다음 과제: 한 줄에 하나. (예전 임시저장은 글 한 덩어리였으니 줄로 쪼개서 이어받는다)
   const [hwTexts, setHwTexts] = useState(() => {
     const d = student && loadDraft(student.id);
@@ -58,7 +51,7 @@ export default function LessonRecord({ go, params }) {
   const lessonNo = Number(student?.baseCount || 0) + logs.length + 1;
   const hwClean = cleanHw(hwTexts);
   const canShare = !!linked && !isNew && (rows.length > 0 || hwClean.length > 0);
-  const canSave = rows.length > 0 || pad.trim() !== "" || hwClean.length > 0 || (isNew && firstMemo.trim() !== "");
+  const canSave = rows.length > 0 || hwClean.length > 0 || (isNew && firstMemo.trim() !== "");
 
   const prev = logs[0];
   const prevItems = !isNew ? hwItemsFromLog(prev) : [];
@@ -114,12 +107,8 @@ export default function LessonRecord({ go, params }) {
   };
   useEffect(() => {
     if (!focusNote) return;
-    const el = padRef.current;
-    if (el) {
-      el.focus();
-      el.setSelectionRange(el.value.length, el.value.length);
-      el.scrollTop = el.scrollHeight;
-    }
+    const el = document.getElementById(`note-${focusNote}`);
+    if (el) el.focus({ preventScroll: true }); // 화면이 노트 쪽으로 끌려 내려가지 않게 (버튼을 계속 누를 수 있게)
     setFocusNote("");
   }, [focusNote]);
   useEffect(() => {
@@ -133,7 +122,6 @@ export default function LessonRecord({ go, params }) {
   const addRow = (item) => {
     const row = rowFromItem(item);
     setRows((r) => [...r, row]);
-    setPad((p) => appendHeader(p, row));
     setFocusNote(row.key);
   };
   // 칩에 없는 것을 그 자리에서 적어 추가. 이름이 칩과 같으면 그 칩으로, 아니면 이번 레슨에만 쓰는 항목
@@ -154,22 +142,19 @@ export default function LessonRecord({ go, params }) {
     el.style.height = Math.min(el.scrollHeight, 200) + "px"; // 글이 길어지면 아래로 늘어나고, 너무 길면 칸 안에서 스크롤
   };
   const updateRow = (key, patch) => setRows((r) => r.map((x) => (x.key === key ? { ...x, ...patch } : x)));
-  const removeRow = (key) => {
-    setPad((p) => removeBlock(p, rows, key));
-    setRows((r) => r.filter((x) => x.key !== key));
-  };
+  const removeRow = (key) => setRows((r) => r.filter((x) => x.key !== key));
 
   // 쓰는 중 자동 임시저장 (화면을 옮기거나 새로고침해도 안 사라지게)
   useEffect(() => {
     if (!student) return;
-    const empty = rows.length === 0 && pad.trim() === "" && hwClean.length === 0 && firstMemo.trim() === "";
+    const empty = rows.length === 0 && hwClean.length === 0 && firstMemo.trim() === "";
     const t = setTimeout(() => {
       try {
         if (empty) {
           localStorage.removeItem(draftKey(student.id));
           setDraftSaved(false);
         } else {
-          localStorage.setItem(draftKey(student.id), JSON.stringify({ rows, hwTexts, firstMemo, pad }));
+          localStorage.setItem(draftKey(student.id), JSON.stringify({ rows, hwTexts, firstMemo }));
           setDraftSaved(true);
         }
       } catch {
@@ -177,17 +162,15 @@ export default function LessonRecord({ go, params }) {
       }
     }, 400);
     return () => clearTimeout(t);
-  }, [rows, hwTexts, firstMemo, pad, student?.id]);
+  }, [rows, hwTexts, firstMemo, student?.id]);
 
   const save = async () => {
     if (!student || saving || !canSave) return;
     setSaving(true);
     setError("");
     try {
-      const parsed = parsePad(pad, rows); // 노트를 항목별 메모로 나눈다
-      const rowsFinal = rows.map((r, i) => ({ ...r, note: parsed.notes[i] }));
-      const memo = [composeMemo(rowsFinal, hwClean), parsed.extra].filter(Boolean).join("\n");
-      const segs = toSegments(rowsFinal);
+      const memo = composeMemo(rows, hwClean);
+      const segs = toSegments(rows);
       const hwItemsNew = hwClean.map((text) => ({ text, status: "" }));
       let didShare = false;
       const newId = await addLog({
@@ -406,15 +389,35 @@ export default function LessonRecord({ go, params }) {
           )}
 
           <p className="rec-lbl">노트</p>
-          <textarea
-            ref={padRef}
-            className="rec-nb"
-            data-testid="rec-nb"
-            value={pad}
-            onChange={(e) => setPad(e.target.value)}
-            placeholder={"항목 버튼을 누르면 '발성 - '이 새 줄에 생겨요.\n이어서 바로 적으세요."}
-            rows={8}
-          />
+          <div className="rec-nb" data-testid="rec-nb">
+            {rows.length === 0 ? (
+              <p className="rec-nb-empty">항목 버튼을 누르면 이 노트 왼쪽에 칸이 생겨요. 옆에 바로 적으세요.</p>
+            ) : (
+              rows.map((r) => (
+                <div className="rec-nb-line" key={r.key}>
+                  <span
+                    className="rec-nb-tag"
+                    style={{
+                      background: `${r.color}24`,
+                      borderColor: `${r.color}b3`,
+                      color: `color-mix(in srgb, ${r.color} 62%, #000)`,
+                    }}
+                  >
+                    {r.name}
+                  </span>
+                  <textarea
+                    id={`note-${r.key}`}
+                    className="rec-nb-in"
+                    rows={1}
+                    ref={fit}
+                    value={r.note}
+                    onChange={(e) => { updateRow(r.key, { note: e.target.value }); fit(e.target); }}
+                    aria-label={`${r.name} 메모`}
+                  />
+                </div>
+              ))
+            )}
+          </div>
         </div>
 
         <div className="rec-right">
@@ -425,11 +428,7 @@ export default function LessonRecord({ go, params }) {
               </p>
               <p className="rec-prev-body">{(prev.memo || "").split("\n").slice(0, 4).join("\n")}</p>
               {prev.segments && prev.segments.length > 0 && (
-                <button className="rec-link" onClick={() => {
-                  const add = rowsFromSegments(prev.segments, items);
-                  setRows((r) => [...r, ...add]);
-                  setPad((p) => add.reduce((a, r) => appendHeader(a, r), p));
-                }}>
+                <button className="rec-link" onClick={() => setRows((r) => [...r, ...rowsFromSegments(prev.segments, items)])}>
                   ↻ 지난 항목 그대로 추가
                 </button>
               )}
