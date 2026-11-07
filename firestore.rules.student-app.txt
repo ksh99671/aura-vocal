@@ -47,8 +47,9 @@ service cloud.firestore {
     // 4) 학생이 자기 연결 위치를 다시 찾기 위한 색인 (로그인할 때마다 코드를 안 넣도록)
     //    문서 필드: trainerUid, studentId
     match /studentLinks/{studentUid} {
-      allow read: if request.auth != null && request.auth.uid == studentUid;
-      allow create: if request.auth != null && request.auth.uid == studentUid
+    //    트레이너가 연결을 끊으면 학생 앱이 이 문서를 지우고 새 코드로 다시 만든다 (그래서 update, delete 허용)
+      allow read, delete: if request.auth != null && request.auth.uid == studentUid;
+      allow create, update: if request.auth != null && request.auth.uid == studentUid
         && existsAfter(/databases/$(database)/documents/trainers/$(request.resource.data.trainerUid)/students/$(request.resource.data.studentId)/links/$(studentUid));
     }
 
@@ -61,7 +62,8 @@ service cloud.firestore {
 
     // 6) 학생의 연습 기록: 자기 것만 읽고 쓴다 (트레이너는 1)번 규칙으로 읽는다)
     match /trainers/{uid}/students/{sid}/practice/{pid} {
-      allow read: if request.auth != null && resource.data.studentUid == request.auth.uid
+      // 아직 없는 문서를 읽을 때(resource == null)도 막히지 않게 한다
+      allow read: if request.auth != null && (resource == null || resource.data.studentUid == request.auth.uid)
         && exists(/databases/$(database)/documents/trainers/$(uid)/students/$(sid)/links/$(request.auth.uid));
       allow create: if request.auth != null && request.resource.data.studentUid == request.auth.uid
         && exists(/databases/$(database)/documents/trainers/$(uid)/students/$(sid)/links/$(request.auth.uid));

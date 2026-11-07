@@ -809,4 +809,5 @@ html[data-screen="lessonHub"] .screen > .student-card:nth-child(even) { animatio
 .rec-nb-move button:hover:not(:disabled) { color: #6A4FE0; }
 .rec-nb-move button:disabled { opacity: .25; cursor: default; }
 .rec-nb-line:hover .rec-nb-move, .rec-nb-line:focus-within .rec-nb-move { opacity: 1; }
+.rec-stuchk { display: inline-block; margin: 2px 0 6px; font-size: 11px; padding: 2px 8px; border-radius: 10px; background: rgba(106, 79, 224, .16); color: var(--accent, #8f7bf0); }
 

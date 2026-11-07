@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { doc, updateDoc, serverTimestamp, Timestamp } from "firebase/firestore";
+import { doc, updateDoc, onSnapshot, serverTimestamp, Timestamp } from "firebase/firestore";
 import { db, auth } from "../../firebase";
 import BackButton from "../../components/BackButton";
 import NavBar from "../../components/NavBar";
@@ -58,6 +58,17 @@ export default function LessonRecord({ go, params }) {
   const hwItems = localHw || prevItems;
   const score = hwScore(hwItems);
   useEffect(() => setLocalHw(null), [prev?.id]);
+  // 학생 앱에서 학생이 직접 체크한 지난 과제 (참고용으로 옆에 보여준다. 최종 확인은 선생님이 누른다)
+  const [stuChk, setStuChk] = useState([]);
+  useEffect(() => {
+    setStuChk([]);
+    if (!student || !prev?.id || !auth.currentUser) return;
+    return onSnapshot(
+      doc(db, "trainers", auth.currentUser.uid, "students", student.id, "practice", prev.id),
+      (snap) => setStuChk(snap.exists() ? snap.data().items || [] : []),
+      () => {}
+    );
+  }, [student?.id, prev?.id]);
 
   // 지난 과제를 "했어요 / 조금 했어요 / 못 했어요"로 확인. 지난 레슨 기록 자체에 바로 저장한다
   const setHwStatus = async (idx, key) => {
@@ -296,6 +307,11 @@ export default function LessonRecord({ go, params }) {
               {hwItems.map((it, i) => (
                 <div className="rec-hwitem" key={`${i}-${it.text}`}>
                   <p className="rec-hwtext">{it.text}</p>
+                  {(() => {
+                    const mine = stuChk.find((x) => x.text === it.text)?.status;
+                    const lab = HW_STATUS.find((s) => s.key === mine)?.label;
+                    return lab ? <span className="rec-stuchk" data-k={mine}>학생 체크: {lab}</span> : null;
+                  })()}
                   <div className="rec-hw3">
                     {HW_STATUS.map((s) => (
                       <button
