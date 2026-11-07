@@ -143,6 +143,16 @@ export default function LessonRecord({ go, params }) {
   };
   const updateRow = (key, patch) => setRows((r) => r.map((x) => (x.key === key ? { ...x, ...patch } : x)));
   const removeRow = (key) => setRows((r) => r.filter((x) => x.key !== key));
+  // 노트(와 기록 목록)에서 줄 위치를 한 칸 위/아래로 옮긴다
+  const moveRow = (key, dir) =>
+    setRows((r) => {
+      const i = r.findIndex((x) => x.key === key);
+      const j = i + dir;
+      if (i < 0 || j < 0 || j >= r.length) return r;
+      const n = [...r];
+      [n[i], n[j]] = [n[j], n[i]];
+      return n;
+    });
 
   // 쓰는 중 자동 임시저장 (화면을 옮기거나 새로고침해도 안 사라지게)
   useEffect(() => {
@@ -393,7 +403,7 @@ export default function LessonRecord({ go, params }) {
             {rows.length === 0 ? (
               <p className="rec-nb-empty">항목 버튼을 누르면 이 노트 왼쪽에 칸이 생겨요. 옆에 바로 적으세요.</p>
             ) : (
-              rows.map((r) => (
+              rows.map((r, idx) => (
                 <div className="rec-nb-line" key={r.key}>
                   <span
                     className="rec-nb-tag"
@@ -405,6 +415,7 @@ export default function LessonRecord({ go, params }) {
                   >
                     {r.name}
                   </span>
+                  <span className="rec-nb-dash" aria-hidden="true">-</span>
                   <textarea
                     id={`note-${r.key}`}
                     className="rec-nb-in"
@@ -414,6 +425,10 @@ export default function LessonRecord({ go, params }) {
                     onChange={(e) => { updateRow(r.key, { note: e.target.value }); fit(e.target); }}
                     aria-label={`${r.name} 메모`}
                   />
+                  <span className="rec-nb-move">
+                    <button type="button" onClick={() => moveRow(r.key, -1)} disabled={idx === 0} aria-label={`${r.name} 위로`}>▲</button>
+                    <button type="button" onClick={() => moveRow(r.key, 1)} disabled={idx === rows.length - 1} aria-label={`${r.name} 아래로`}>▼</button>
+                  </span>
                 </div>
               ))
             )}
